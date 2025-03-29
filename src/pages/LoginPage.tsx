@@ -180,7 +180,7 @@ const LoginPage = () => {
                 </Button>
               </div>
               <div className="text-center text-xs text-muted-foreground">
-                <p>Default admin: username "admin", password "admin123"</p>
+                <p>THE CYCLONES</p>
               </div>
             </CardFooter>
           </Card>
