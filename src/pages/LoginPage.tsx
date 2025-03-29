@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Football, Users } from "lucide-react";
+import { Ball, Users } from "lucide-react";
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
@@ -91,7 +91,7 @@ const LoginPage = () => {
           <Card className="shadow-lg border-t-4 border-t-tsfc-green">
             <CardHeader className="space-y-1">
               <div className="flex justify-center mb-4">
-                <Football className="h-12 w-12 text-tsfc-green animate-[bounce_2s_ease-in-out_infinite]" />
+                <Ball className="h-12 w-12 text-tsfc-green animate-[bounce_2s_ease-in-out_infinite]" />
               </div>
               <CardTitle className="text-2xl text-center">Sign In</CardTitle>
               <CardDescription className="text-center">
