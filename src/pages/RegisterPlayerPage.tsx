@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
-import { usePlayerData } from "../hooks/usePlayerData";
+import { usePlayerData, Player } from "../hooks/usePlayerData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,8 +43,8 @@ const playerSchema = z.object({
   }),
   race: z.string().min(1, { message: "Race is required" }),
   nationality: z.string().min(1, { message: "Nationality is required" }),
-  safaId: z.string().optional(),
-  photoUrl: z.string().optional(),
+  safaId: z.string().optional().transform(val => val || ""),
+  photoUrl: z.string().optional().transform(val => val || ""),
   registrationStatus: z.enum(["Registered", "Pending", "Not Registered"], { 
     required_error: "Please select a registration status" 
   }),
@@ -55,7 +55,7 @@ const playerSchema = z.object({
     required_error: "Please select a category" 
   }),
   emergencyContact: z.string().min(1, { message: "Emergency contact is required" }),
-  medicalConditions: z.string().optional(),
+  medicalConditions: z.string().optional().transform(val => val || ""),
 });
 
 type PlayerFormValues = z.infer<typeof playerSchema>;
@@ -92,11 +92,13 @@ const RegisterPlayerPage = () => {
 
   // Handle form submission
   const onSubmit = (values: PlayerFormValues) => {
-    // Add the date joined field (current date)
-    const playerData = {
+    // Add the date joined field (current date) and ensure all fields are present
+    const playerData: Omit<Player, "id"> = {
       ...values,
       dateJoined: format(new Date(), "yyyy-MM-dd"),
-      photoUrl: photoPreview || values.photoUrl,
+      photoUrl: photoPreview || values.photoUrl || "",
+      safaId: values.safaId || "",
+      medicalConditions: values.medicalConditions || "",
     };
 
     const newPlayer = addPlayer(playerData);

@@ -135,10 +135,29 @@ export const usePlayerData = () => {
     }
   }, []);
 
-  const addPlayer = (player: Omit<Player, "id">) => {
-    const newPlayer = {
-      ...player,
-      id: Date.now().toString(), // Simple ID generation
+  // Modify the addPlayer function to handle potentially missing fields
+  const addPlayer = (playerData: Partial<Omit<Player, "id">>) => {
+    // Create a complete player with default values for any missing fields
+    const newPlayer: Player = {
+      id: Date.now().toString(),
+      name: playerData.name || "",
+      surname: playerData.surname || "",
+      age: playerData.age || 0,
+      preferredFoot: playerData.preferredFoot || "Right",
+      idNumber: playerData.idNumber || "",
+      dateOfBirth: playerData.dateOfBirth || "",
+      race: playerData.race || "",
+      nationality: playerData.nationality || "",
+      safaId: playerData.safaId || "",
+      photoUrl: playerData.photoUrl || "",
+      dateJoined: playerData.dateJoined || new Date().toISOString().split('T')[0],
+      registrationStatus: playerData.registrationStatus || "Pending",
+      position: playerData.position || "",
+      height: playerData.height || "",
+      weight: playerData.weight || "",
+      category: playerData.category || "Senior",
+      emergencyContact: playerData.emergencyContact || "",
+      medicalConditions: playerData.medicalConditions || "",
     };
     
     const updatedPlayers = [...players, newPlayer];
