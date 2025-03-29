@@ -180,6 +180,7 @@ const Dashboard = () => {
             <ul className="list-disc list-inside text-gray-600 space-y-1">
               <li>League Champions (2020)</li>
               <li>Promotion Playoffs Qualification (2020)</li>
+              <li>League Cups Champions (2022)</li>
             </ul>
           </div>
           
