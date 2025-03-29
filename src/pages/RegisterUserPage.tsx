@@ -10,6 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Target } from "lucide-react";
+import { exportUsersToCSV } from "./LoginPage";
 
 const userSchema = z.object({
   username: z.string().min(3, { message: "Username must be at least 3 characters" }),
@@ -54,11 +55,12 @@ const RegisterUserPage = () => {
         return;
       }
       
-      // Add new user
+      // Add new user with registration date
       const newUser = {
         username: values.username,
         password: values.password,
-        role: "user" // Default role is user, not admin
+        role: "user", // Default role is user, not admin
+        registrationDate: new Date().toISOString().split('T')[0]
       };
       
       existingUsers.push(newUser);
@@ -68,6 +70,9 @@ const RegisterUserPage = () => {
         title: "Registration successful",
         description: "You can now log in with your credentials"
       });
+      
+      // Export updated users list to CSV
+      exportUsersToCSV();
       
       navigate("/login");
     } catch (error) {

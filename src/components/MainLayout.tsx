@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { exportUsersToCSV } from "../pages/LoginPage";
 
 type MainLayoutProps = {
   children: React.ReactNode;
@@ -134,7 +135,25 @@ const MainLayout = ({ children, title }: MainLayoutProps) => {
                       }}
                     >
                       <FileSpreadsheet className="mr-3 h-5 w-5" />
-                      Export to CSV
+                      Export Players to CSV
+                    </a>
+                  )}
+                  {user.role === "admin" && (
+                    <a 
+                      href="#" 
+                      className="flex items-center px-4 py-3 text-gray-700 hover:bg-tsfc-green hover:text-white rounded-md transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        exportUsersToCSV();
+                        toast({
+                          title: "Export successful",
+                          description: "User login details exported to CSV"
+                        });
+                        setSidebarOpen(false);
+                      }}
+                    >
+                      <FileSpreadsheet className="mr-3 h-5 w-5" />
+                      Export Users to CSV
                     </a>
                   )}
                 </nav>

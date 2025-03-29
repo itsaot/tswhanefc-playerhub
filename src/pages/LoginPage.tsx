@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { UserContext } from "../contexts/UserContext";
@@ -10,6 +9,43 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { Target, Users } from "lucide-react";
 
+// Utility function to export users to CSV
+const exportUsersToCSV = () => {
+  try {
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    
+    // Create CSV content without passwords for security reasons
+    const headers = ["Username", "Role", "Registration Date"];
+    
+    const rows = users.map((user: any) => [
+      user.username,
+      user.role,
+      user.registrationDate || "Unknown"
+    ]);
+    
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.join(","))
+    ].join("\n");
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "tshwane_sporting_fc_users.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    return true;
+  } catch (error) {
+    console.error("Error exporting users to CSV:", error);
+    return false;
+  }
+};
+
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -19,15 +55,20 @@ const LoginPage = () => {
   const { toast } = useToast();
 
   // Initialize admin user if no users exist
-  useState(() => {
+  useEffect(() => {
     const users = localStorage.getItem("users");
     if (!users) {
-      // Create default admin account
+      // Create default admin account with registration date
       localStorage.setItem("users", JSON.stringify([
-        { username: "admin", password: "admin123", role: "admin" }
+        { 
+          username: "admin", 
+          password: "admin123", 
+          role: "admin",
+          registrationDate: new Date().toISOString().split('T')[0]
+        }
       ]));
     }
-  });
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,4 +196,5 @@ const LoginPage = () => {
   );
 };
 
+export { exportUsersToCSV };
 export default LoginPage;
