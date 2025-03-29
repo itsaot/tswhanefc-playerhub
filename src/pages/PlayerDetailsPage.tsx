@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useContext } from "react";
 import { UserContext } from "../contexts/UserContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCog, Calendar, FileText, Medal, Star, User2 } from "lucide-react";
+import { UserCog, Calendar, FileText, Medal, Star, User2, Edit } from "lucide-react";
 
 const PlayerDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +52,9 @@ const PlayerDetailsPage = () => {
         {isAdmin && (
           <Button
             onClick={() => navigate(`/players/${id}/edit`)}
+            className="bg-tsfc-green hover:bg-tsfc-green/90"
           >
+            <Edit className="h-4 w-4 mr-2" />
             Edit Player
           </Button>
         )}
@@ -62,11 +64,11 @@ const PlayerDetailsPage = () => {
         <div className="md:col-span-1">
           <Card>
             <CardContent className="pt-6 text-center">
-              <div className="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4 border-4 border-tsfc-green">
+              <div className="w-32 h-32 rounded-full overflow-hidden mx-auto mb-4 border-4 border-tsfc-green animate-fade-in">
                 <img 
                   src={player.photoUrl || "https://i.pravatar.cc/300?img=" + player.id} 
                   alt={player.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />
               </div>
               <h2 className="text-2xl font-bold">{player.name} {player.surname}</h2>
@@ -135,7 +137,7 @@ const PlayerDetailsPage = () => {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="details">
+            <TabsContent value="details" className="animate-fade-in">
               <Card>
                 <CardHeader>
                   <CardTitle>Personal Details</CardTitle>
@@ -183,7 +185,7 @@ const PlayerDetailsPage = () => {
               </Card>
             </TabsContent>
             
-            <TabsContent value="registration">
+            <TabsContent value="registration" className="animate-fade-in">
               <Card>
                 <CardHeader>
                   <CardTitle>Registration Information</CardTitle>
@@ -225,7 +227,7 @@ const PlayerDetailsPage = () => {
               </Card>
             </TabsContent>
             
-            <TabsContent value="history">
+            <TabsContent value="history" className="animate-fade-in">
               <Card>
                 <CardHeader>
                   <CardTitle>Player History</CardTitle>
@@ -256,7 +258,7 @@ const PlayerDetailsPage = () => {
               </Card>
             </TabsContent>
             
-            <TabsContent value="medical">
+            <TabsContent value="medical" className="animate-fade-in">
               <Card>
                 <CardHeader>
                   <CardTitle>Medical Information</CardTitle>

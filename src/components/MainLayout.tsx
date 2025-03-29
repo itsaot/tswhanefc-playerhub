@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { UserContext } from "../contexts/UserContext";
 import { 
   Users, UserPlus, LayoutDashboard, LogOut, FileSpreadsheet, 
-  Menu, X, Facebook
+  Menu, X, Facebook, Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -104,6 +104,14 @@ const MainLayout = ({ children, title }: MainLayoutProps) => {
                     <Users className="mr-3 h-5 w-5" />
                     Players
                   </Link>
+                  <Link 
+                    to="/photos" 
+                    className="flex items-center px-4 py-3 text-gray-700 hover:bg-tsfc-green hover:text-white rounded-md transition-colors"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Camera className="mr-3 h-5 w-5" />
+                    Club Photos
+                  </Link>
                   {user.role === "admin" && (
                     <Link 
                       to="/register-player" 
@@ -120,8 +128,8 @@ const MainLayout = ({ children, title }: MainLayoutProps) => {
                       className="flex items-center px-4 py-3 text-gray-700 hover:bg-tsfc-green hover:text-white rounded-md transition-colors"
                       onClick={(e) => {
                         e.preventDefault();
-                        // This will be implemented later with CSV handling
-                        alert("CSV export functionality will be implemented here");
+                        const { exportToCSV } = require('../hooks/usePlayerData');
+                        exportToCSV();
                         setSidebarOpen(false);
                       }}
                     >

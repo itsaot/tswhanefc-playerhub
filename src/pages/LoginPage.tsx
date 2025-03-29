@@ -1,167 +1,156 @@
 
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
 import { UserContext } from "../contexts/UserContext";
-import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Football, Users } from "lucide-react";
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user");
+  const [isLoading, setIsLoading] = useState(false);
   const { setUser } = useContext(UserContext);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Demo credentials for testing purposes
-  const demoCredentials = {
-    admin: { username: "admin", password: "admin123" },
-    user: { username: "user", password: "user123" },
-  };
+  // Initialize admin user if no users exist
+  useState(() => {
+    const users = localStorage.getItem("users");
+    if (!users) {
+      // Create default admin account
+      localStorage.setItem("users", JSON.stringify([
+        { username: "admin", password: "admin123", role: "admin" }
+      ]));
+    }
+  });
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    let isAuthenticated = false;
-    
-    // For demo purposes, hardcoded validation
-    if (role === "admin" && 
-        username === demoCredentials.admin.username && 
-        password === demoCredentials.admin.password) {
-      isAuthenticated = true;
-    } else if (
-      role === "user" && 
-      username === demoCredentials.user.username && 
-      password === demoCredentials.user.password
-    ) {
-      isAuthenticated = true;
-    }
+    setIsLoading(true);
 
-    if (isAuthenticated) {
-      const userData = { username, role: role as "admin" | "user" };
-      localStorage.setItem("user", JSON.stringify(userData));
-      setUser(userData);
+    try {
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      const userAccount = users.find(
+        (u: any) => u.username === username && u.password === password
+      );
+
+      if (userAccount) {
+        // Valid login
+        const userInfo = { username: userAccount.username, role: userAccount.role };
+        localStorage.setItem("user", JSON.stringify(userInfo));
+        setUser(userInfo);
+        
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${username}!`,
+        });
+        
+        navigate("/dashboard");
+      } else {
+        // Invalid login
+        toast({
+          title: "Login failed",
+          description: "Invalid username or password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
       toast({
-        title: "Login Successful",
-        description: `Welcome back, ${username}!`,
-      });
-      navigate("/dashboard");
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Invalid username or password",
+        title: "Login error",
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
     }
+    
+    setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <img 
-            src="/lovable-uploads/ffa38254-5486-435a-bf4a-46cdd763335b.png"
-            alt="Tshwane Sporting FC Logo" 
-            className="mx-auto h-24 w-24" 
-          />
-          <h1 className="mt-4 text-3xl font-bold text-tsfc-green">TSHWANE SPORTING FC</h1>
-          <p className="mt-2 text-gray-600">PlayerHub Management System</p>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <header className="bg-tsfc-green text-white p-4 shadow-md">
+        <div className="container mx-auto flex items-center justify-center">
+          <div className="flex items-center">
+            <img 
+              src="/lovable-uploads/ffa38254-5486-435a-bf4a-46cdd763335b.png" 
+              alt="Tshwane Sporting FC Logo" 
+              className="h-12 w-12 mr-3" 
+            />
+            <h1 className="text-2xl font-bold">Tshwane Sporting FC</h1>
+          </div>
         </div>
+      </header>
 
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle className="text-xl text-center">Login to Your Account</CardTitle>
-            <CardDescription className="text-center">
-              Enter your credentials to access the system
-            </CardDescription>
-          </CardHeader>
-          <Tabs defaultValue="user" className="w-full" onValueChange={setRole}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="user">User</TabsTrigger>
-              <TabsTrigger value="admin">Admin</TabsTrigger>
-            </TabsList>
-            <TabsContent value="user">
-              <CardContent className="pt-4">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      type="text"
-                      placeholder="Username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="text-xs text-muted-foreground mt-1">
-                    <p><strong>Demo credentials:</strong> user / user123</p>
-                  </div>
-
-                  <Button type="submit" className="w-full bg-tsfc-green hover:bg-tsfc-green/90">
-                    Login
-                  </Button>
-                </form>
-              </CardContent>
-            </TabsContent>
-            <TabsContent value="admin">
-              <CardContent className="pt-4">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-username">Username</Label>
-                    <Input
-                      id="admin-username"
-                      type="text"
-                      placeholder="Admin Username"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-password">Password</Label>
-                    <Input
-                      id="admin-password"
-                      type="password"
-                      placeholder="Admin Password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="text-xs text-muted-foreground mt-1">
-                    <p><strong>Demo credentials:</strong> admin / admin123</p>
-                  </div>
-
-                  <Button type="submit" className="w-full bg-tsfc-green hover:bg-tsfc-green/90">
-                    Login as Admin
-                  </Button>
-                </form>
-              </CardContent>
-            </TabsContent>
-          </Tabs>
-          <CardFooter className="text-center text-xs text-gray-500 pt-2 justify-center">
-            <div>© {new Date().getFullYear()} Tshwane Sporting FC - The Cyclones</div>
-          </CardFooter>
-        </Card>
-      </div>
+      <main className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md animate-fade-in">
+          <Card className="shadow-lg border-t-4 border-t-tsfc-green">
+            <CardHeader className="space-y-1">
+              <div className="flex justify-center mb-4">
+                <Football className="h-12 w-12 text-tsfc-green animate-[bounce_2s_ease-in-out_infinite]" />
+              </div>
+              <CardTitle className="text-2xl text-center">Sign In</CardTitle>
+              <CardDescription className="text-center">
+                Enter your credentials to access your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-tsfc-green hover:bg-tsfc-green/90"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
+              <div className="text-center text-sm">
+                Don't have an account?{" "}
+                <Button variant="link" className="p-0" onClick={() => navigate("/register")}>
+                  Register now
+                </Button>
+              </div>
+              <div className="text-center text-xs text-muted-foreground">
+                <p>Default admin: username "admin", password "admin123"</p>
+              </div>
+            </CardFooter>
+          </Card>
+        </div>
+      </main>
+      
+      <footer className="bg-tsfc-black text-white py-4">
+        <div className="container mx-auto px-4 text-center">
+          <p>© {new Date().getFullYear()} Tshwane Sporting FC. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 };

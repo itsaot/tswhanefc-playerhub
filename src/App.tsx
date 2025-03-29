@@ -7,10 +7,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ReactNode, useState } from "react";
 import { UserContext } from "./contexts/UserContext";
 import LoginPage from "./pages/LoginPage";
+import RegisterUserPage from "./pages/RegisterUserPage";
 import Dashboard from "./pages/Dashboard";
 import PlayersPage from "./pages/PlayersPage";
 import PlayerDetailsPage from "./pages/PlayerDetailsPage";
+import EditPlayerPage from "./pages/EditPlayerPage";
 import RegisterPlayerPage from "./pages/RegisterPlayerPage";
+import ClubPhotosPage from "./pages/ClubPhotosPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -35,13 +38,16 @@ function App(): ReactNode {
             <Routes>
               <Route path="/" element={user.role ? <Dashboard /> : <LoginPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterUserPage />} />
               <Route element={<ProtectedRoute allowedRoles={["admin", "user"]} />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/players" element={<PlayersPage />} />
                 <Route path="/players/:id" element={<PlayerDetailsPage />} />
+                <Route path="/photos" element={<ClubPhotosPage />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
                 <Route path="/register-player" element={<RegisterPlayerPage />} />
+                <Route path="/players/:id/edit" element={<EditPlayerPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
