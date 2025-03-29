@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Ball } from "lucide-react";
+import { Target } from "lucide-react";
 
 const userSchema = z.object({
   username: z.string().min(3, { message: "Username must be at least 3 characters" }),
@@ -102,7 +102,7 @@ const RegisterUserPage = () => {
           <Card className="shadow-lg border-t-4 border-t-tsfc-green">
             <CardHeader className="space-y-1">
               <div className="flex items-center justify-center mb-2">
-                <Ball className="h-10 w-10 text-tsfc-green animate-[spin_3s_ease-in-out_infinite]" />
+                <Target className="h-10 w-10 text-tsfc-green animate-[spin_3s_ease-in-out_infinite]" />
               </div>
               <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
               <CardDescription className="text-center">
