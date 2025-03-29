@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../components/MainLayout";
@@ -6,32 +5,15 @@ import { usePlayerData, Player } from "../hooks/usePlayerData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Card, CardContent, CardDescription, 
-  CardFooter, CardHeader, CardTitle 
-} from "@/components/ui/card";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
-import { Upload } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
 
-// Form schema with validation
 const playerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   surname: z.string().min(2, { message: "Surname must be at least 2 characters" }),
@@ -66,7 +48,6 @@ const RegisterPlayerPage = () => {
   const { toast } = useToast();
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
-  // Initialize form with default values
   const form = useForm<PlayerFormValues>({
     resolver: zodResolver(playerSchema),
     defaultValues: {
@@ -90,28 +71,38 @@ const RegisterPlayerPage = () => {
     },
   });
 
-  // Handle form submission
   const onSubmit = (values: PlayerFormValues) => {
-    // Add the date joined field (current date) and ensure all fields are present
-    const playerData: Omit<Player, "id"> = {
-      ...values,
-      dateJoined: format(new Date(), "yyyy-MM-dd"),
-      photoUrl: photoPreview || values.photoUrl || "",
+    const playerData = {
+      name: values.name,
+      surname: values.surname,
+      age: values.age,
+      preferredFoot: values.preferredFoot,
+      idNumber: values.idNumber,
+      dateOfBirth: values.dateOfBirth,
+      race: values.race,
+      nationality: values.nationality,
       safaId: values.safaId || "",
+      photoUrl: photoPreview || values.photoUrl || "",
+      dateJoined: format(new Date(), "yyyy-MM-dd"),
+      registrationStatus: values.registrationStatus,
+      position: values.position,
+      height: values.height,
+      weight: values.weight,
+      category: values.category,
+      emergencyContact: values.emergencyContact,
       medicalConditions: values.medicalConditions || "",
     };
 
     const newPlayer = addPlayer(playerData);
-
+    
     toast({
-      title: "Player Registered",
-      description: `${values.name} ${values.surname} has been added to the system`,
+      title: "Player registered successfully",
+      description: `${values.name} ${values.surname} has been added to the system.`,
     });
-
+    
     navigate(`/players/${newPlayer.id}`);
   };
 
-  // Handle date of birth change to automatically calculate age
   const handleDateOfBirthChange = (dateOfBirth: string) => {
     const birthDate = new Date(dateOfBirth);
     const today = new Date();
@@ -122,7 +113,6 @@ const RegisterPlayerPage = () => {
     }
     form.setValue("age", age);
     
-    // Auto-set category based on age
     if (age < 18) {
       form.setValue("category", "Junior");
     } else {
@@ -130,7 +120,6 @@ const RegisterPlayerPage = () => {
     }
   };
 
-  // Handle photo upload
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -251,7 +240,6 @@ const RegisterPlayerPage = () => {
                                 const age = parseInt(e.target.value);
                                 field.onChange(age);
                                 
-                                // Auto-set category based on age
                                 if (age < 18) {
                                   form.setValue("category", "Junior");
                                 } else {
@@ -323,7 +311,6 @@ const RegisterPlayerPage = () => {
                     />
                   </div>
 
-                  {/* Photo upload section */}
                   <div className="border p-4 rounded-md">
                     <div className="mb-4">
                       <Label htmlFor="photo-upload">Player Photo</Label>

@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { UserContext } from "./contexts/UserContext";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
@@ -14,9 +14,11 @@ import RegisterPlayerPage from "./pages/RegisterPlayerPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// Create the query client outside of the component function
 const queryClient = new QueryClient();
 
-const App = () => {
+// Ensure App is properly defined as a function component
+function App(): ReactNode {
   const [user, setUser] = useState<{ username: string; role: "admin" | "user" | null }>(
     localStorage.getItem("user") 
       ? JSON.parse(localStorage.getItem("user") as string)
@@ -48,6 +50,6 @@ const App = () => {
       </UserContext.Provider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
