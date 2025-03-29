@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, X, ImagePlus, Image as ImageIcon } from "lucide-react";
+import { Upload, X, ImagePlus, Image as ImageIcon, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Carousel,
@@ -22,6 +22,7 @@ import {
   CarouselNext,
   CarouselPrevious
 } from "@/components/ui/carousel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Define photo type
 type ClubPhoto = {
@@ -79,6 +80,8 @@ const ClubPhotosPage = () => {
   });
   
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUrlInput, setPhotoUrlInput] = useState("");
+  const [activeTab, setActiveTab] = useState("upload");
   
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -93,11 +96,25 @@ const ClubPhotosPage = () => {
     reader.readAsDataURL(file);
   };
   
+  const handleUrlPreview = () => {
+    if (!photoUrlInput) {
+      toast({
+        title: "Missing URL",
+        description: "Please enter an image URL",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setPhotoPreview(photoUrlInput);
+    setNewPhoto({...newPhoto, url: photoUrlInput});
+  };
+  
   const handleAddPhoto = () => {
     if (!newPhoto.title || !newPhoto.url) {
       toast({
         title: "Missing information",
-        description: "Please provide a title and upload a photo",
+        description: "Please provide a title and upload a photo or add a URL",
         variant: "destructive"
       });
       return;
@@ -123,6 +140,7 @@ const ClubPhotosPage = () => {
       url: ""
     });
     setPhotoPreview(null);
+    setPhotoUrlInput("");
     
     toast({
       title: "Photo added",
@@ -225,7 +243,7 @@ const ClubPhotosPage = () => {
                   </div>
                   
                   <Button 
-                    className="bg-tsfc-green hover:bg-tsfc-green/90"
+                    className="bg-tsfc-green hover:bg-tsfc-green/90 w-full"
                     onClick={handleAddPhoto}
                   >
                     <ImagePlus className="h-4 w-4 mr-2" />
@@ -234,45 +252,101 @@ const ClubPhotosPage = () => {
                 </div>
                 
                 <div className="flex flex-col items-center justify-center">
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 w-full aspect-video flex flex-col items-center justify-center">
-                    {photoPreview ? (
-                      <div className="relative w-full h-full">
-                        <img 
-                          src={photoPreview} 
-                          alt="Preview" 
-                          className="w-full h-full object-cover rounded-md"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => {
-                            setPhotoPreview(null);
-                            setNewPhoto({...newPhoto, url: ""});
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                  <Tabs defaultValue="upload" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid grid-cols-2 mb-4">
+                      <TabsTrigger value="upload">Upload File</TabsTrigger>
+                      <TabsTrigger value="url">Image URL</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="upload" className="mt-0">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 w-full aspect-video flex flex-col items-center justify-center">
+                        {photoPreview && activeTab === "upload" ? (
+                          <div className="relative w-full h-full">
+                            <img 
+                              src={photoPreview} 
+                              alt="Preview" 
+                              className="w-full h-full object-cover rounded-md"
+                            />
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-2 right-2"
+                              onClick={() => {
+                                setPhotoPreview(null);
+                                setNewPhoto({...newPhoto, url: ""});
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <ImageIcon className="h-12 w-12 text-gray-400 mb-4" />
+                            <p className="text-sm text-gray-500 mb-2">Drag and drop or click to upload</p>
+                            <div className="relative">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onChange={handlePhotoUpload}
+                              />
+                              <Button variant="outline">
+                                <Upload className="h-4 w-4 mr-2" />
+                                Upload Photo
+                              </Button>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      <>
-                        <ImageIcon className="h-12 w-12 text-gray-400 mb-4" />
-                        <p className="text-sm text-gray-500 mb-2">Drag and drop or click to upload</p>
-                        <div className="relative">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            onChange={handlePhotoUpload}
-                          />
-                          <Button variant="outline">
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload Photo
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                    </TabsContent>
+                    <TabsContent value="url" className="mt-0">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 w-full aspect-video flex flex-col">
+                        {photoPreview && activeTab === "url" ? (
+                          <div className="relative w-full h-full flex-1">
+                            <img 
+                              src={photoPreview} 
+                              alt="Preview" 
+                              className="w-full h-full object-cover rounded-md"
+                            />
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-2 right-2"
+                              onClick={() => {
+                                setPhotoPreview(null);
+                                setPhotoUrlInput("");
+                                setNewPhoto({...newPhoto, url: ""});
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mb-4 flex-1 flex flex-col justify-center items-center">
+                              <Link className="h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-sm text-gray-500 mb-4">Enter the URL of an image</p>
+                            </div>
+                            <div className="space-y-2">
+                              <Input 
+                                value={photoUrlInput}
+                                onChange={(e) => setPhotoUrlInput(e.target.value)}
+                                placeholder="https://example.com/image.jpg"
+                                className="mb-2"
+                              />
+                              <Button 
+                                variant="outline" 
+                                className="w-full"
+                                onClick={handleUrlPreview}
+                              >
+                                <Link className="h-4 w-4 mr-2" />
+                                Preview Image
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
             </CardContent>
