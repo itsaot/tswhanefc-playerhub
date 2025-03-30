@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 
 export type Player = {
@@ -23,7 +22,8 @@ export type Player = {
   medicalConditions: string;
 };
 
-// Sample players data to demonstrate functionality
+const PLAYERS_STORAGE_KEY = "players";
+
 const samplePlayers: Player[] = [
   {
     id: "1",
@@ -117,15 +117,13 @@ export const usePlayerData = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real application, this would fetch from an API or read from a CSV file
-    // For this demo, we'll use the sample data
     try {
-      const storedPlayers = localStorage.getItem("players");
+      const storedPlayers = localStorage.getItem(PLAYERS_STORAGE_KEY);
       if (storedPlayers) {
         setPlayers(JSON.parse(storedPlayers));
       } else {
         setPlayers(samplePlayers);
-        localStorage.setItem("players", JSON.stringify(samplePlayers));
+        localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(samplePlayers));
       }
     } catch (err) {
       setError("Failed to load player data");
@@ -135,9 +133,24 @@ export const usePlayerData = () => {
     }
   }, []);
 
-  // Modify the addPlayer function to handle potentially missing fields
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === PLAYERS_STORAGE_KEY && e.newValue) {
+        setPlayers(JSON.parse(e.newValue));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  useEffect(() => {
+    if (players.length > 0 && !loading) {
+      localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(players));
+    }
+  }, [players, loading]);
+
   const addPlayer = (playerData: Partial<Omit<Player, "id">>) => {
-    // Create a complete player with default values for any missing fields
     const newPlayer: Player = {
       id: Date.now().toString(),
       name: playerData.name || "",
@@ -162,7 +175,6 @@ export const usePlayerData = () => {
     
     const updatedPlayers = [...players, newPlayer];
     setPlayers(updatedPlayers);
-    localStorage.setItem("players", JSON.stringify(updatedPlayers));
     return newPlayer;
   };
 
@@ -171,13 +183,11 @@ export const usePlayerData = () => {
       player.id === id ? { ...player, ...updatedData } : player
     );
     setPlayers(updatedPlayers);
-    localStorage.setItem("players", JSON.stringify(updatedPlayers));
   };
 
   const deletePlayer = (id: string) => {
     const updatedPlayers = players.filter(player => player.id !== id);
     setPlayers(updatedPlayers);
-    localStorage.setItem("players", JSON.stringify(updatedPlayers));
   };
 
   const getPlayerById = (id: string) => {
@@ -245,7 +255,6 @@ export const usePlayerData = () => {
         const player: any = {};
         
         headers.forEach((header, index) => {
-          // Convert to proper type based on header
           switch(header.trim()) {
             case "Age":
               player.age = parseInt(values[index], 10);
@@ -259,7 +268,6 @@ export const usePlayerData = () => {
       }
       
       setPlayers(importedPlayers);
-      localStorage.setItem("players", JSON.stringify(importedPlayers));
       return true;
     } catch (err) {
       console.error("Error importing CSV:", err);

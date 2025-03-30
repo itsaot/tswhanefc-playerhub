@@ -1,6 +1,5 @@
-
 import MainLayout from "../components/MainLayout";
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { UserContext } from "../contexts/UserContext";
 import { 
   Card, 
@@ -62,6 +61,9 @@ const samplePhotos: ClubPhoto[] = [
   }
 ];
 
+// Key for localStorage
+const STORAGE_KEY = "clubPhotos";
+
 const ClubPhotosPage = () => {
   const { user } = useContext(UserContext);
   const isAdmin = user.role === "admin";
@@ -69,7 +71,7 @@ const ClubPhotosPage = () => {
   
   // Initialize photos from localStorage or use sample data
   const [photos, setPhotos] = useState<ClubPhoto[]>(() => {
-    const storedPhotos = localStorage.getItem("clubPhotos");
+    const storedPhotos = localStorage.getItem(STORAGE_KEY);
     return storedPhotos ? JSON.parse(storedPhotos) : samplePhotos;
   });
   
@@ -82,6 +84,23 @@ const ClubPhotosPage = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoUrlInput, setPhotoUrlInput] = useState("");
   const [activeTab, setActiveTab] = useState("upload");
+
+  // Sync photos with sessionStorage for cross-device support
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY && e.newValue) {
+        setPhotos(JSON.parse(e.newValue));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Save photos to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(photos));
+  }, [photos]);
   
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -131,7 +150,6 @@ const ClubPhotosPage = () => {
     
     const updatedPhotos = [...photos, photoToAdd];
     setPhotos(updatedPhotos);
-    localStorage.setItem("clubPhotos", JSON.stringify(updatedPhotos));
     
     // Reset form
     setNewPhoto({
@@ -151,7 +169,6 @@ const ClubPhotosPage = () => {
   const handleDeletePhoto = (id: string) => {
     const updatedPhotos = photos.filter(photo => photo.id !== id);
     setPhotos(updatedPhotos);
-    localStorage.setItem("clubPhotos", JSON.stringify(updatedPhotos));
     
     toast({
       title: "Photo deleted",
