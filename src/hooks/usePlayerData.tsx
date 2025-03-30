@@ -1,4 +1,7 @@
+
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 export type Player = {
   id: string;
@@ -24,135 +27,151 @@ export type Player = {
 
 const PLAYERS_STORAGE_KEY = "players";
 
-const samplePlayers: Player[] = [
-  {
-    id: "1",
-    name: "Thabo",
-    surname: "Mokoena",
-    age: 23,
-    preferredFoot: "Right",
-    idNumber: "9812125678083",
-    dateOfBirth: "1998-12-12",
-    race: "Black",
-    nationality: "South African",
-    safaId: "SAFA12345",
-    photoUrl: "https://i.pravatar.cc/300?img=1",
-    dateJoined: "2021-02-15",
-    registrationStatus: "Registered",
-    position: "Striker",
-    height: "185 cm",
-    weight: "75 kg",
-    category: "Senior",
-    emergencyContact: "+27 71 234 5678",
-    medicalConditions: "None",
-  },
-  {
-    id: "2",
-    name: "Sipho",
-    surname: "Mbatha",
-    age: 19,
-    preferredFoot: "Left",
-    idNumber: "0305125678083",
-    dateOfBirth: "2003-05-12",
-    race: "Black",
-    nationality: "South African",
-    safaId: "SAFA23456",
-    photoUrl: "https://i.pravatar.cc/300?img=2",
-    dateJoined: "2022-01-10",
-    registrationStatus: "Registered",
-    position: "Midfielder",
-    height: "175 cm",
-    weight: "68 kg",
-    category: "Senior",
-    emergencyContact: "+27 82 345 6789",
-    medicalConditions: "Asthma",
-  },
-  {
-    id: "3",
-    name: "Lerato",
-    surname: "Molefe",
-    age: 16,
-    preferredFoot: "Right",
-    idNumber: "0610085678083",
-    dateOfBirth: "2006-10-08",
-    race: "Black",
-    nationality: "South African",
-    safaId: "SAFA34567",
-    photoUrl: "https://i.pravatar.cc/300?img=3",
-    dateJoined: "2022-03-05",
-    registrationStatus: "Pending",
-    position: "Defender",
-    height: "178 cm",
-    weight: "65 kg",
-    category: "Junior",
-    emergencyContact: "+27 73 456 7890",
-    medicalConditions: "None",
-  },
-  {
-    id: "4",
-    name: "John",
-    surname: "Smith",
-    age: 17,
-    preferredFoot: "Both",
-    idNumber: "0512155678083",
-    dateOfBirth: "2005-12-15",
-    race: "White",
-    nationality: "South African",
-    safaId: "SAFA45678",
-    photoUrl: "https://i.pravatar.cc/300?img=4",
-    dateJoined: "2021-08-20",
-    registrationStatus: "Registered",
-    position: "Goalkeeper",
-    height: "190 cm",
-    weight: "80 kg",
-    category: "Junior",
-    emergencyContact: "+27 84 567 8901",
-    medicalConditions: "None",
-  },
-];
-
 export const usePlayerData = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
+  // Load players from Supabase on initial load
   useEffect(() => {
-    try {
-      const storedPlayers = localStorage.getItem(PLAYERS_STORAGE_KEY);
-      if (storedPlayers) {
-        setPlayers(JSON.parse(storedPlayers));
-      } else {
-        setPlayers(samplePlayers);
-        localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(samplePlayers));
-      }
-    } catch (err) {
-      setError("Failed to load player data");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    const fetchPlayers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("players")
+          .select("*");
 
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === PLAYERS_STORAGE_KEY && e.newValue) {
-        setPlayers(JSON.parse(e.newValue));
+        if (error) {
+          console.error("Error fetching players:", error);
+          setError("Failed to load player data from the database");
+          // Fallback to localStorage if Supabase fails
+          const storedPlayers = localStorage.getItem(PLAYERS_STORAGE_KEY);
+          if (storedPlayers) {
+            setPlayers(JSON.parse(storedPlayers));
+          }
+        } else if (data && data.length > 0) {
+          // Transform Supabase data format to match our app's format
+          const formattedPlayers = data.map(player => ({
+            id: player.id,
+            name: player.name,
+            surname: player.surname,
+            age: player.age,
+            preferredFoot: player.preferred_foot as "Left" | "Right" | "Both",
+            idNumber: player.id_number,
+            dateOfBirth: player.date_of_birth,
+            race: player.race,
+            nationality: player.nationality,
+            safaId: player.safa_id || "",
+            photoUrl: player.photo_url || "",
+            dateJoined: player.date_joined,
+            registrationStatus: player.registration_status as "Registered" | "Pending" | "Not Registered",
+            position: player.position,
+            height: player.height || "",
+            weight: player.weight || "",
+            category: player.category as "Senior" | "Junior",
+            emergencyContact: player.emergency_contact || "",
+            medicalConditions: player.medical_conditions || "",
+          }));
+          setPlayers(formattedPlayers);
+          
+          // Backup to localStorage
+          localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(formattedPlayers));
+        } else {
+          // If no data in Supabase yet, check localStorage for initial data
+          const storedPlayers = localStorage.getItem(PLAYERS_STORAGE_KEY);
+          if (storedPlayers) {
+            const parsedPlayers = JSON.parse(storedPlayers);
+            setPlayers(parsedPlayers);
+            
+            // Migrate localStorage data to Supabase
+            parsedPlayers.forEach(async (player: Player) => {
+              await addPlayerToSupabase(player);
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch players:", err);
+        setError("Failed to load player data");
+        
+        // Fallback to localStorage
+        const storedPlayers = localStorage.getItem(PLAYERS_STORAGE_KEY);
+        if (storedPlayers) {
+          setPlayers(JSON.parse(storedPlayers));
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    fetchPlayers();
+    
+    // Subscribe to realtime changes
+    const playersSubscription = supabase
+      .channel('players-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'players' 
+      }, (payload) => {
+        // Refresh the players list when changes occur
+        fetchPlayers();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(playersSubscription);
+    };
   }, []);
 
-  useEffect(() => {
-    if (players.length > 0 && !loading) {
-      localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(players));
-    }
-  }, [players, loading]);
+  // Converts a Player object to the format expected by Supabase
+  const playerToDbFormat = (player: Player) => {
+    return {
+      name: player.name,
+      surname: player.surname,
+      age: player.age,
+      preferred_foot: player.preferredFoot,
+      id_number: player.idNumber,
+      date_of_birth: player.dateOfBirth,
+      race: player.race,
+      nationality: player.nationality,
+      safa_id: player.safaId,
+      photo_url: player.photoUrl,
+      date_joined: player.dateJoined,
+      registration_status: player.registrationStatus,
+      position: player.position,
+      height: player.height,
+      weight: player.weight,
+      category: player.category,
+      emergency_contact: player.emergencyContact,
+      medical_conditions: player.medicalConditions,
+    };
+  };
 
-  const addPlayer = (playerData: Partial<Omit<Player, "id">>) => {
+  // Function to add a player to Supabase
+  const addPlayerToSupabase = async (playerData: Player) => {
+    try {
+      const dbFormatPlayer = playerToDbFormat(playerData);
+      
+      const { data, error } = await supabase
+        .from('players')
+        .insert(dbFormatPlayer)
+        .select();
+        
+      if (error) {
+        console.error("Error adding player to Supabase:", error);
+        return null;
+      }
+      
+      return data?.[0] || null;
+    } catch (err) {
+      console.error("Failed to add player to Supabase:", err);
+      return null;
+    }
+  };
+
+  const addPlayer = async (playerData: Partial<Omit<Player, "id">>) => {
     const newPlayer: Player = {
-      id: Date.now().toString(),
+      id: Date.now().toString(), // This will be replaced by Supabase's UUID
       name: playerData.name || "",
       surname: playerData.surname || "",
       age: playerData.age || 0,
@@ -173,21 +192,138 @@ export const usePlayerData = () => {
       medicalConditions: playerData.medicalConditions || "",
     };
     
-    const updatedPlayers = [...players, newPlayer];
-    setPlayers(updatedPlayers);
-    return newPlayer;
+    try {
+      // Add to Supabase first
+      const dbFormatPlayer = playerToDbFormat(newPlayer);
+      
+      const { data, error } = await supabase
+        .from('players')
+        .insert(dbFormatPlayer)
+        .select();
+        
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (data && data[0]) {
+        // If successful, update the player with the Supabase ID
+        const supabasePlayer = data[0];
+        const formattedPlayer: Player = {
+          ...newPlayer,
+          id: supabasePlayer.id,
+        };
+        
+        // Update local state
+        const updatedPlayers = [...players, formattedPlayer];
+        setPlayers(updatedPlayers);
+        
+        // Update localStorage as backup
+        localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(updatedPlayers));
+        
+        return formattedPlayer;
+      }
+      
+      // Fallback to local-only if Supabase insert fails but doesn't throw an error
+      const updatedPlayers = [...players, newPlayer];
+      setPlayers(updatedPlayers);
+      localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(updatedPlayers));
+      return newPlayer;
+      
+    } catch (err) {
+      console.error("Error adding player:", err);
+      toast({
+        title: "Error adding player",
+        description: "The player couldn't be saved to the database. Added locally only.",
+        variant: "destructive"
+      });
+      
+      // Fallback to local-only
+      const updatedPlayers = [...players, newPlayer];
+      setPlayers(updatedPlayers);
+      localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(updatedPlayers));
+      return newPlayer;
+    }
   };
 
-  const updatePlayer = (id: string, updatedData: Partial<Player>) => {
-    const updatedPlayers = players.map(player => 
-      player.id === id ? { ...player, ...updatedData } : player
-    );
-    setPlayers(updatedPlayers);
+  const updatePlayer = async (id: string, updatedData: Partial<Player>) => {
+    try {
+      // Convert to database format (snake_case)
+      const dbUpdates: Record<string, any> = {};
+      
+      // Only include fields that are being updated
+      Object.entries(updatedData).forEach(([key, value]) => {
+        // Convert camelCase to snake_case
+        const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        dbUpdates[dbKey] = value;
+      });
+      
+      // Update in Supabase
+      const { error } = await supabase
+        .from('players')
+        .update(dbUpdates)
+        .eq('id', id);
+        
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Update local state
+      const updatedPlayers = players.map(player => 
+        player.id === id ? { ...player, ...updatedData } : player
+      );
+      
+      setPlayers(updatedPlayers);
+      
+      // Update localStorage as backup
+      localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(updatedPlayers));
+    } catch (err) {
+      console.error("Error updating player:", err);
+      toast({
+        title: "Error updating player",
+        description: "Changes couldn't be saved to the database but were saved locally.",
+        variant: "destructive"
+      });
+      
+      // Fallback to local-only update
+      const updatedPlayers = players.map(player => 
+        player.id === id ? { ...player, ...updatedData } : player
+      );
+      setPlayers(updatedPlayers);
+      localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(updatedPlayers));
+    }
   };
 
-  const deletePlayer = (id: string) => {
-    const updatedPlayers = players.filter(player => player.id !== id);
-    setPlayers(updatedPlayers);
+  const deletePlayer = async (id: string) => {
+    try {
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('players')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Update local state
+      const updatedPlayers = players.filter(player => player.id !== id);
+      setPlayers(updatedPlayers);
+      
+      // Update localStorage as backup
+      localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(updatedPlayers));
+    } catch (err) {
+      console.error("Error deleting player:", err);
+      toast({
+        title: "Error deleting player",
+        description: "The player couldn't be deleted from the database but was removed locally.",
+        variant: "destructive"
+      });
+      
+      // Fallback to local-only delete
+      const updatedPlayers = players.filter(player => player.id !== id);
+      setPlayers(updatedPlayers);
+      localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(updatedPlayers));
+    }
   };
 
   const getPlayerById = (id: string) => {
@@ -241,7 +377,7 @@ export const usePlayerData = () => {
     document.body.removeChild(link);
   };
 
-  const importFromCSV = (csvText: string) => {
+  const importFromCSV = async (csvText: string) => {
     try {
       const lines = csvText.split("\n");
       const headers = lines[0].split(",");
@@ -260,14 +396,62 @@ export const usePlayerData = () => {
               player.age = parseInt(values[index], 10);
               break;
             default:
-              player[header.trim().toLowerCase().replace(/\s+/g, '')] = values[index];
+              // Convert header to camelCase for our app's data format
+              const camelHeader = header.trim().toLowerCase().replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => 
+                index === 0 ? word.toLowerCase() : word.toUpperCase()
+              ).replace(/\s+/g, '');
+              player[camelHeader] = values[index];
           }
         });
         
         importedPlayers.push(player as Player);
       }
       
-      setPlayers(importedPlayers);
+      // Add each player to Supabase
+      const promises = importedPlayers.map(async (player) => {
+        const dbPlayer = playerToDbFormat(player);
+        return supabase.from('players').insert(dbPlayer);
+      });
+      
+      await Promise.all(promises);
+      
+      // Refresh players from Supabase
+      const { data, error } = await supabase
+        .from("players")
+        .select("*");
+        
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        // Transform Supabase data format to match our app's format
+        const formattedPlayers = data.map(player => ({
+          id: player.id,
+          name: player.name,
+          surname: player.surname,
+          age: player.age,
+          preferredFoot: player.preferred_foot as "Left" | "Right" | "Both",
+          idNumber: player.id_number,
+          dateOfBirth: player.date_of_birth,
+          race: player.race,
+          nationality: player.nationality,
+          safaId: player.safa_id || "",
+          photoUrl: player.photo_url || "",
+          dateJoined: player.date_joined,
+          registrationStatus: player.registration_status as "Registered" | "Pending" | "Not Registered",
+          position: player.position,
+          height: player.height || "",
+          weight: player.weight || "",
+          category: player.category as "Senior" | "Junior",
+          emergencyContact: player.emergency_contact || "",
+          medicalConditions: player.medical_conditions || "",
+        }));
+        
+        setPlayers(formattedPlayers);
+        localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(formattedPlayers));
+      }
+      
       return true;
     } catch (err) {
       console.error("Error importing CSV:", err);

@@ -9,7 +9,105 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      club_photos: {
+        Row: {
+          description: string | null
+          id: string
+          photo_url: string
+          title: string
+          upload_date: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          photo_url: string
+          title: string
+          upload_date?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          photo_url?: string
+          title?: string
+          upload_date?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          age: number
+          category: string
+          created_at: string | null
+          date_joined: string
+          date_of_birth: string
+          emergency_contact: string | null
+          height: string | null
+          id: string
+          id_number: string
+          medical_conditions: string | null
+          name: string
+          nationality: string
+          photo_url: string | null
+          position: string
+          preferred_foot: string
+          race: string
+          registration_status: string
+          safa_id: string | null
+          surname: string
+          updated_at: string | null
+          weight: string | null
+        }
+        Insert: {
+          age: number
+          category: string
+          created_at?: string | null
+          date_joined: string
+          date_of_birth: string
+          emergency_contact?: string | null
+          height?: string | null
+          id?: string
+          id_number: string
+          medical_conditions?: string | null
+          name: string
+          nationality: string
+          photo_url?: string | null
+          position: string
+          preferred_foot: string
+          race: string
+          registration_status: string
+          safa_id?: string | null
+          surname: string
+          updated_at?: string | null
+          weight?: string | null
+        }
+        Update: {
+          age?: number
+          category?: string
+          created_at?: string | null
+          date_joined?: string
+          date_of_birth?: string
+          emergency_contact?: string | null
+          height?: string | null
+          id?: string
+          id_number?: string
+          medical_conditions?: string | null
+          name?: string
+          nationality?: string
+          photo_url?: string | null
+          position?: string
+          preferred_foot?: string
+          race?: string
+          registration_status?: string
+          safa_id?: string | null
+          surname?: string
+          updated_at?: string | null
+          weight?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
