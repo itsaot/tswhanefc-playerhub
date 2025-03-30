@@ -74,7 +74,7 @@ const RegisterPlayerPage = () => {
     },
   });
 
-  const onSubmit = (values: PlayerFormValues) => {
+  const onSubmit = async (values: PlayerFormValues) => {
     const playerData = {
       name: values.name,
       surname: values.surname,
@@ -96,14 +96,23 @@ const RegisterPlayerPage = () => {
       medicalConditions: values.medicalConditions || "",
     };
 
-    const newPlayer = addPlayer(playerData);
-    
-    toast({
-      title: "Player registered successfully",
-      description: `${values.name} ${values.surname} has been added to the system.`,
-    });
-    
-    navigate(`/players/${newPlayer.id}`);
+    try {
+      const newPlayer = await addPlayer(playerData);
+      
+      toast({
+        title: "Player registered successfully",
+        description: `${values.name} ${values.surname} has been added to the system.`,
+      });
+      
+      navigate(`/players/${newPlayer.id}`);
+    } catch (error) {
+      console.error("Error registering player:", error);
+      toast({
+        title: "Registration failed",
+        description: "There was an error registering the player. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDateOfBirthChange = (dateOfBirth: string) => {
