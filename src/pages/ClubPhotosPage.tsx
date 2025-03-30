@@ -1,14 +1,15 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import MainLayout from "../components/MainLayout";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Heart, HeartOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { UserContext } from "../contexts/UserContext";
 
 interface ClubPhoto {
   id: string;
@@ -17,6 +18,8 @@ interface ClubPhoto {
   photoUrl: string;
   uploadDate: string;
   uploadedBy?: string;
+  likes?: number;
+  likedByCurrentUser?: boolean;
 }
 
 const ClubPhotosPage = () => {
@@ -28,6 +31,7 @@ const ClubPhotosPage = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { user, isAdmin } = useContext(UserContext);
 
   // Fetch photos from Supabase
   useEffect(() => {
@@ -35,7 +39,7 @@ const ClubPhotosPage = () => {
       try {
         const { data, error } = await supabase
           .from("club_photos")
-          .select("*")
+          .select("*, photo_likes(user_id)")
           .order("upload_date", { ascending: false });
 
         if (error) {
@@ -50,7 +54,9 @@ const ClubPhotosPage = () => {
             description: photo.description || "",
             photoUrl: photo.photo_url,
             uploadDate: new Date(photo.upload_date).toLocaleDateString(),
-            uploadedBy: photo.uploaded_by || "Admin"
+            uploadedBy: photo.uploaded_by || "Admin",
+            likes: photo.photo_likes ? photo.photo_likes.length : 0,
+            likedByCurrentUser: photo.photo_likes ? photo.photo_likes.some((like: any) => like.user_id === user.username) : false
           }));
           
           setPhotos(formattedPhotos);
@@ -88,10 +94,24 @@ const ClubPhotosPage = () => {
       })
       .subscribe();
       
+    // Also subscribe to likes changes
+    const likesSubscription = supabase
+      .channel('likes-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'photo_likes' 
+      }, (payload) => {
+        // Refresh the photos list when likes change
+        fetchPhotos();
+      })
+      .subscribe();
+      
     return () => {
       supabase.removeChannel(photosSubscription);
+      supabase.removeChannel(likesSubscription);
     };
-  }, [toast]);
+  }, [toast, user.username]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -123,7 +143,7 @@ const ClubPhotosPage = () => {
         title,
         description,
         photo_url: photoPreview || photoUrl,
-        uploaded_by: "Admin"
+        uploaded_by: user.username
       };
 
       // Insert into Supabase
@@ -143,7 +163,9 @@ const ClubPhotosPage = () => {
           description: data[0].description || "",
           photoUrl: data[0].photo_url,
           uploadDate: new Date(data[0].upload_date).toLocaleDateString(),
-          uploadedBy: data[0].uploaded_by || "Admin"
+          uploadedBy: data[0].uploaded_by || user.username,
+          likes: 0,
+          likedByCurrentUser: false
         };
 
         // Update local state
@@ -201,105 +223,152 @@ const ClubPhotosPage = () => {
     }
   };
 
+  const handleToggleLike = async (photoId: string, isLiked: boolean) => {
+    try {
+      if (isLiked) {
+        // Unlike the photo
+        const { error } = await supabase
+          .from("photo_likes")
+          .delete()
+          .eq("photo_id", photoId)
+          .eq("user_id", user.username);
+
+        if (error) throw new Error(error.message);
+      } else {
+        // Like the photo
+        const { error } = await supabase
+          .from("photo_likes")
+          .insert({
+            photo_id: photoId,
+            user_id: user.username
+          });
+
+        if (error) throw new Error(error.message);
+      }
+
+      // Update local state instead of waiting for subscription
+      setPhotos(prevPhotos => prevPhotos.map(photo => {
+        if (photo.id === photoId) {
+          return {
+            ...photo,
+            likes: isLiked ? (photo.likes || 1) - 1 : (photo.likes || 0) + 1,
+            likedByCurrentUser: !isLiked
+          };
+        }
+        return photo;
+      }));
+
+    } catch (err) {
+      console.error("Error toggling like:", err);
+      toast({
+        title: "Error",
+        description: "Failed to update like status",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <MainLayout title="Club Photos">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add New Photo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input 
-                  id="title" 
-                  placeholder="Team training session" 
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea 
-                  id="description" 
-                  placeholder="Weekly training at Tshwane Stadium..." 
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Upload Photo</Label>
-                <div className="border rounded-md p-4">
-                  {photoPreview ? (
-                    <div className="relative">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                        onClick={() => setPhotoPreview(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <img 
-                        src={photoPreview} 
-                        alt="Preview" 
-                        className="rounded-md max-h-[200px] mx-auto"
-                      />
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex flex-col items-center justify-center py-4">
-                        <div className="relative w-full">
-                          <Button 
-                            variant="outline" 
-                            className="w-full"
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Choose File
-                          </Button>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            onChange={handleFileUpload}
-                          />
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          JPG, PNG or GIF. Max 5MB.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+        {isAdmin() && (
+          <div className="md:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Photo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input 
+                    id="title" 
+                    placeholder="Team training session" 
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="photoUrl">Or enter image URL</Label>
-                <Input 
-                  id="photoUrl" 
-                  placeholder="https://example.com/image.jpg" 
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                  disabled={!!photoPreview}
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={handleAddPhoto} 
-                className="w-full bg-tsfc-green hover:bg-tsfc-green/90"
-                disabled={uploading}
-              >
-                {uploading ? "Uploading..." : "Add Photo"}
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Textarea 
+                    id="description" 
+                    placeholder="Weekly training at Tshwane Stadium..." 
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Upload Photo</Label>
+                  <div className="border rounded-md p-4">
+                    {photoPreview ? (
+                      <div className="relative">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                          onClick={() => setPhotoPreview(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <img 
+                          src={photoPreview} 
+                          alt="Preview" 
+                          className="rounded-md max-h-[200px] mx-auto"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex flex-col items-center justify-center py-4">
+                          <div className="relative w-full">
+                            <Button 
+                              variant="outline" 
+                              className="w-full"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Choose File
+                            </Button>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              onChange={handleFileUpload}
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            JPG, PNG or GIF. Max 5MB.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="photoUrl">Or enter image URL</Label>
+                  <Input 
+                    id="photoUrl" 
+                    placeholder="https://example.com/image.jpg" 
+                    value={photoUrl}
+                    onChange={(e) => setPhotoUrl(e.target.value)}
+                    disabled={!!photoPreview}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  onClick={handleAddPhoto} 
+                  className="w-full bg-tsfc-green hover:bg-tsfc-green/90"
+                  disabled={uploading}
+                >
+                  {uploading ? "Uploading..." : "Add Photo"}
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        )}
         
-        <div className="md:col-span-2">
+        <div className={`md:col-span-${isAdmin() ? "2" : "3"}`}>
           <h2 className="text-xl font-semibold mb-4">Club Photo Gallery</h2>
           
           {loading ? (
@@ -310,10 +379,10 @@ const ClubPhotosPage = () => {
             <Card className="flex flex-col items-center justify-center h-64 text-center">
               <ImageIcon className="h-16 w-16 text-gray-300 mb-4" />
               <h3 className="text-lg font-medium">No photos yet</h3>
-              <p className="text-muted-foreground">Add photos to build the club gallery</p>
+              <p className="text-muted-foreground">Photos will be added by club administrators</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {photos.map((photo) => (
                 <Card key={photo.id} className="overflow-hidden">
                   <div className="relative h-48 overflow-hidden">
@@ -325,14 +394,16 @@ const ClubPhotosPage = () => {
                         (e.target as HTMLImageElement).src = "https://via.placeholder.com/300x200?text=Image+not+found";
                       }}
                     />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2"
-                      onClick={() => handleRemovePhoto(photo.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {isAdmin() && (
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={() => handleRemovePhoto(photo.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                   <CardContent className="p-4">
                     <h3 className="font-bold truncate">{photo.title}</h3>
@@ -344,6 +415,21 @@ const ClubPhotosPage = () => {
                     <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
                       <span>Added: {photo.uploadDate}</span>
                       <span>By: {photo.uploadedBy}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`flex items-center ${photo.likedByCurrentUser ? 'text-red-500' : ''}`}
+                        onClick={() => handleToggleLike(photo.id, !!photo.likedByCurrentUser)}
+                      >
+                        {photo.likedByCurrentUser ? (
+                          <HeartOff className="h-4 w-4 mr-1" />
+                        ) : (
+                          <Heart className="h-4 w-4 mr-1" />
+                        )}
+                        {photo.likedByCurrentUser ? 'Unlike' : 'Like'} ({photo.likes || 0})
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

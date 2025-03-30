@@ -8,7 +8,7 @@ type ProtectedRouteProps = {
 };
 
 const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-  const { user } = useContext(UserContext);
+  const { user, isAdmin } = useContext(UserContext);
 
   if (!user.role) {
     return <Navigate to="/login" replace />;
