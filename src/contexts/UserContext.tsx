@@ -1,27 +1,44 @@
 
-import React, { createContext, Dispatch, SetStateAction, useState } from "react";
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
 
-type User = {
-  username: string;
-  role: "admin" | "user" | null;
-};
-
-type UserContextType = {
-  user: User;
-  setUser: Dispatch<SetStateAction<User>>;
+export type UserContextType = {
+  user: {
+    username: string;
+    role: 'admin' | 'user' | null;
+  };
+  setUser: React.Dispatch<React.SetStateAction<{
+    username: string;
+    role: 'admin' | 'user' | null;
+  }>>;
   isAdmin: () => boolean;
 };
 
+const defaultUser = {
+  username: '',
+  role: null as 'admin' | 'user' | null
+};
+
 export const UserContext = createContext<UserContextType>({
-  user: { username: "", role: null },
+  user: defaultUser,
   setUser: () => {},
-  isAdmin: () => false,
+  isAdmin: () => false
 });
 
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User>({ username: "demo", role: "user" });
+type UserProviderProps = {
+  children: ReactNode;
+};
 
-  const isAdmin = () => user.role === "admin";
+export const UserProvider = ({ children }: UserProviderProps) => {
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : defaultUser;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('user', JSON.stringify(user));
+  }, [user]);
+
+  const isAdmin = () => user.role === 'admin';
 
   return (
     <UserContext.Provider value={{ user, setUser, isAdmin }}>
