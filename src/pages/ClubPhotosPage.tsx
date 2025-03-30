@@ -22,12 +22,6 @@ interface ClubPhoto {
   likedByCurrentUser?: boolean;
 }
 
-interface PhotoLike {
-  id: string;
-  photo_id: string;
-  user_id: string;
-}
-
 const ClubPhotosPage = () => {
   const [photos, setPhotos] = useState<ClubPhoto[]>([]);
   const [title, setTitle] = useState("");
@@ -86,7 +80,7 @@ const ClubPhotosPage = () => {
         const formattedPhotos: ClubPhoto[] = photosData.map(photo => {
           const photoLikesCount = likesCount.find(lc => lc.photoId === photo.id)?.count || 0;
           const isLikedByUser = likesData 
-            ? likesData.some((like: PhotoLike) => like.photo_id === photo.id)
+            ? likesData.some(like => like.photo_id === photo.id)
             : false;
 
           return {
