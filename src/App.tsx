@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ReactNode, useState } from "react";
-import { UserContext } from "./contexts/UserContext";
+import { UserContext, UserProvider } from "./contexts/UserContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterUserPage from "./pages/RegisterUserPage";
 import Dashboard from "./pages/Dashboard";
@@ -23,21 +23,15 @@ const queryClient = new QueryClient();
 
 // Ensure App is properly defined as a function component
 function App(): ReactNode {
-  const [user, setUser] = useState<{ username: string; role: "admin" | "user" | null }>(
-    localStorage.getItem("user") 
-      ? JSON.parse(localStorage.getItem("user") as string)
-      : { username: "", role: null }
-  );
-
   return (
     <QueryClientProvider client={queryClient}>
-      <UserContext.Provider value={{ user, setUser }}>
+      <UserProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={user.role ? <Dashboard /> : <LoginPage />} />
+              <Route path="/" element={<LoginPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterUserPage />} />
               <Route element={<ProtectedRoute allowedRoles={["admin", "user"]} />}>
@@ -55,7 +49,7 @@ function App(): ReactNode {
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </UserContext.Provider>
+      </UserProvider>
     </QueryClientProvider>
   );
 }

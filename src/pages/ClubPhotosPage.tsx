@@ -22,6 +22,12 @@ interface ClubPhoto {
   likedByCurrentUser?: boolean;
 }
 
+interface PhotoLike {
+  id: string;
+  photo_id: string;
+  user_id: string;
+}
+
 const ClubPhotosPage = () => {
   const [photos, setPhotos] = useState<ClubPhoto[]>([]);
   const [title, setTitle] = useState("");
@@ -37,30 +43,65 @@ const ClubPhotosPage = () => {
   useEffect(() => {
     const fetchPhotos = async () => {
       try {
-        const { data, error } = await supabase
+        // First fetch all photos
+        const { data: photosData, error: photosError } = await supabase
           .from("club_photos")
-          .select("*, photo_likes(user_id)")
+          .select("*")
           .order("upload_date", { ascending: false });
 
-        if (error) {
-          throw new Error(error.message);
+        if (photosError) {
+          throw new Error(photosError.message);
         }
 
-        if (data) {
-          // Transform from snake_case to camelCase
-          const formattedPhotos: ClubPhoto[] = data.map(photo => ({
+        if (!photosData) {
+          setPhotos([]);
+          return;
+        }
+
+        // Then fetch all likes for the current user
+        const { data: likesData, error: likesError } = await supabase
+          .from("photo_likes")
+          .select("*")
+          .eq("user_id", user.username);
+
+        if (likesError) {
+          console.error("Error fetching likes:", likesError);
+        }
+
+        // Count all likes per photo
+        const likesCountPromise = Promise.all(
+          photosData.map(async (photo) => {
+            const { count, error } = await supabase
+              .from("photo_likes")
+              .select("*", { count: "exact", head: true })
+              .eq("photo_id", photo.id);
+            
+            return { photoId: photo.id, count: count || 0, error };
+          })
+        );
+
+        const likesCount = await likesCountPromise;
+        
+        // Transform from snake_case to camelCase and add likes info
+        const formattedPhotos: ClubPhoto[] = photosData.map(photo => {
+          const photoLikesCount = likesCount.find(lc => lc.photoId === photo.id)?.count || 0;
+          const isLikedByUser = likesData 
+            ? likesData.some((like: PhotoLike) => like.photo_id === photo.id)
+            : false;
+
+          return {
             id: photo.id,
             title: photo.title,
             description: photo.description || "",
             photoUrl: photo.photo_url,
-            uploadDate: new Date(photo.upload_date).toLocaleDateString(),
+            uploadDate: new Date(photo.upload_date || Date.now()).toLocaleDateString(),
             uploadedBy: photo.uploaded_by || "Admin",
-            likes: photo.photo_likes ? photo.photo_likes.length : 0,
-            likedByCurrentUser: photo.photo_likes ? photo.photo_likes.some((like: any) => like.user_id === user.username) : false
-          }));
-          
-          setPhotos(formattedPhotos);
-        }
+            likes: photoLikesCount,
+            likedByCurrentUser: isLikedByUser
+          };
+        });
+        
+        setPhotos(formattedPhotos);
       } catch (err) {
         console.error("Error fetching photos:", err);
         toast({
@@ -88,7 +129,7 @@ const ClubPhotosPage = () => {
         event: '*', 
         schema: 'public', 
         table: 'club_photos' 
-      }, (payload) => {
+      }, () => {
         // Refresh the photos list when changes occur
         fetchPhotos();
       })
@@ -101,7 +142,7 @@ const ClubPhotosPage = () => {
         event: '*', 
         schema: 'public', 
         table: 'photo_likes' 
-      }, (payload) => {
+      }, () => {
         // Refresh the photos list when likes change
         fetchPhotos();
       })
@@ -162,7 +203,7 @@ const ClubPhotosPage = () => {
           title: data[0].title,
           description: data[0].description || "",
           photoUrl: data[0].photo_url,
-          uploadDate: new Date(data[0].upload_date).toLocaleDateString(),
+          uploadDate: new Date(data[0].upload_date || Date.now()).toLocaleDateString(),
           uploadedBy: data[0].uploaded_by || user.username,
           likes: 0,
           likedByCurrentUser: false
