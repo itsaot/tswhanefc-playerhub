@@ -65,7 +65,7 @@ const MainLayout = ({ children, title }: MainLayoutProps) => {
               className="text-white border-white hover:bg-white hover:text-tsfc-green"
             >
               <LogOut className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="inline">Logout</span>
             </Button>
           </div>
         </div>
