@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, User, Plus, Pencil, Trash2 } from "lucide-react";
+import { Upload, X, User, Plus, Pencil, Trash2, Award } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface CoachingStaff {
   id: string;
@@ -281,14 +283,29 @@ const CoachingStaffPage = () => {
   
   return (
     <MainLayout title="Coaching Staff">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {isAdmin() && (
-          <div className="md:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>{isEditing ? "Edit Staff Member" : "Add New Staff Member"}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-tsfc-green">Coaching Team Management</h1>
+        {isAdmin() && !isEditing && (
+          <Button 
+            onClick={() => setIsEditing(true)} 
+            className="bg-tsfc-green hover:bg-tsfc-green/90"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add New Coach
+          </Button>
+        )}
+      </div>
+      
+      {isAdmin() && isEditing && (
+        <Card className="mb-8 border-2 border-tsfc-green/30 shadow-lg">
+          <CardHeader className="bg-gray-50">
+            <CardTitle className="flex items-center text-xl">
+              <Award className="mr-2 h-5 w-5 text-tsfc-green" />
+              {editingStaff ? `Edit ${editingStaff.name}'s Profile` : "Add New Coach"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="staffName">Name</Label>
                   <Input 
@@ -328,7 +345,9 @@ const CoachingStaffPage = () => {
                     onChange={(e) => setStaffSince(e.target.value)}
                   />
                 </div>
-                
+              </div>
+              
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="staffBio">Biography</Label>
                   <Textarea 
@@ -337,18 +356,19 @@ const CoachingStaffPage = () => {
                     value={staffBio}
                     onChange={(e) => setStaffBio(e.target.value)}
                     rows={4}
+                    className="resize-none"
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label>Staff Photo</Label>
-                  <div className="border rounded-md p-4">
+                  <div className="overflow-hidden rounded-md border bg-white p-4">
                     {photoPreview ? (
                       <div className="relative">
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                          className="absolute right-2 top-2 z-10 bg-white/80 hover:bg-white"
                           onClick={() => setPhotoPreview(null)}
                         >
                           <X className="h-4 w-4" />
@@ -356,7 +376,7 @@ const CoachingStaffPage = () => {
                         <img 
                           src={photoPreview} 
                           alt="Preview" 
-                          className="rounded-md max-h-[200px] mx-auto"
+                          className="mx-auto max-h-[200px] rounded-md object-cover"
                         />
                       </div>
                     ) : photoUrl ? (
@@ -364,7 +384,7 @@ const CoachingStaffPage = () => {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                          className="absolute right-2 top-2 z-10 bg-white/80 hover:bg-white"
                           onClick={() => setPhotoUrl("")}
                         >
                           <X className="h-4 w-4" />
@@ -372,31 +392,29 @@ const CoachingStaffPage = () => {
                         <img 
                           src={photoUrl} 
                           alt="Staff" 
-                          className="rounded-md max-h-[200px] mx-auto"
+                          className="mx-auto max-h-[200px] rounded-md object-cover"
                         />
                       </div>
                     ) : (
-                      <div>
-                        <div className="flex flex-col items-center justify-center py-4">
-                          <div className="relative w-full">
-                            <Button 
-                              variant="outline" 
-                              className="w-full"
-                            >
-                              <Upload className="h-4 w-4 mr-2" />
-                              Choose File
-                            </Button>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              onChange={handleFileUpload}
-                            />
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            JPG, PNG or GIF.
-                          </p>
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <div className="relative w-full">
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Choose Photo
+                          </Button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            onChange={handleFileUpload}
+                          />
                         </div>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          JPG, PNG or GIF.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -412,59 +430,131 @@ const CoachingStaffPage = () => {
                     disabled={!!photoPreview}
                   />
                 </div>
-                
-                <div className="flex gap-2 pt-4">
-                  <Button 
-                    onClick={handleAddOrUpdateStaff} 
-                    className="flex-1 bg-tsfc-green hover:bg-tsfc-green/90"
-                    disabled={submitting}
-                  >
-                    {submitting ? "Saving..." : isEditing ? "Update Staff" : "Add Staff"}
-                  </Button>
-                  {isEditing && (
-                    <Button 
-                      variant="outline" 
-                      onClick={resetForm}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex gap-2">
+              <Button 
+                onClick={handleAddOrUpdateStaff} 
+                className="bg-tsfc-green hover:bg-tsfc-green/90"
+                disabled={submitting}
+              >
+                {submitting ? "Saving..." : isEditing && editingStaff ? "Update Staff" : "Add Staff"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={resetForm}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {loading ? (
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-center">
+            <Award className="mx-auto h-12 w-12 animate-pulse text-tsfc-green opacity-50" />
+            <p className="mt-4 text-muted-foreground">Loading coaching staff...</p>
+          </div>
+        </div>
+      ) : staff.length === 0 ? (
+        <Card className="flex h-64 flex-col items-center justify-center text-center">
+          <User className="mb-4 h-16 w-16 text-gray-300" />
+          <h3 className="text-lg font-medium">No coaching staff yet</h3>
+          <p className="text-muted-foreground">Coaching staff information will be added soon</p>
+        </Card>
+      ) : (
+        <div>
+          <h2 className="mb-4 border-b pb-2 text-xl font-semibold">Technical Team</h2>
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {staff.filter(member => member.role.toLowerCase().includes('coach')).map((staffMember) => (
+              <Card key={staffMember.id} className="group overflow-hidden transition-all hover:shadow-md">
+                <div className="relative">
+                  <div className="aspect-[3/2] bg-gray-100">
+                    <img 
+                      src={staffMember.photo_url || ""} 
+                      alt={staffMember.name}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://via.placeholder.com/300x400?text=Coach";
+                      }}
+                    />
+                  </div>
+                  {isAdmin() && (
+                    <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="bg-white hover:bg-gray-100"
+                        onClick={() => handleEditStaff(staffMember)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDeleteStaff(staffMember.id, staffMember.name)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-bold">{staffMember.name}</h3>
+                  <p className="font-semibold text-tsfc-green">{staffMember.role}</p>
+                  <div className="mt-2 flex items-center text-sm text-muted-foreground">
+                    <span>Since {staffMember.joined_year || "N/A"}</span>
+                  </div>
+                  
+                  <Collapsible className="mt-3">
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="h-auto w-full justify-start p-0 text-sm font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
+                        View more details...
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 space-y-2">
+                      {staffMember.qualifications && (
+                        <div>
+                          <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Qualifications</h4>
+                          <p className="mt-1 text-sm">{staffMember.qualifications}</p>
+                        </div>
+                      )}
+                      
+                      {staffMember.bio && (
+                        <div>
+                          <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Biography</h4>
+                          <p className="mt-1 text-sm text-gray-600">{staffMember.bio}</p>
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        )}
-        
-        <div className={`md:col-span-${isAdmin() ? "2" : "3"}`}>
-          <h2 className="text-xl font-semibold mb-4">Our Coaching Team</h2>
           
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <p>Loading coaching staff...</p>
-            </div>
-          ) : staff.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center h-64 text-center">
-              <User className="h-16 w-16 text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium">No coaching staff yet</h3>
-              <p className="text-muted-foreground">Coaching staff information will be added soon</p>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              {staff.map((staffMember) => (
-                <Card key={staffMember.id} className="overflow-hidden">
-                  <div className="md:flex">
-                    <div className="md:w-1/3 h-64 md:h-auto relative">
-                      <img 
-                        src={staffMember.photo_url || ""} 
-                        alt={staffMember.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "https://via.placeholder.com/300x400?text=Coach";
-                        }}
-                      />
+          {staff.some(member => !member.role.toLowerCase().includes('coach')) && (
+            <>
+              <h2 className="mb-4 border-b pb-2 text-xl font-semibold">Support Staff</h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                {staff.filter(member => !member.role.toLowerCase().includes('coach')).map((staffMember) => (
+                  <Card key={staffMember.id} className="group overflow-hidden transition-all hover:shadow-md">
+                    <div className="relative">
+                      <div className="aspect-square bg-gray-100">
+                        <img 
+                          src={staffMember.photo_url || ""} 
+                          alt={staffMember.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x400?text=Staff";
+                          }}
+                        />
+                      </div>
                       {isAdmin() && (
-                        <div className="absolute top-2 right-2 flex gap-1">
+                        <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <Button
                             variant="secondary"
                             size="icon"
@@ -483,34 +573,82 @@ const CoachingStaffPage = () => {
                         </div>
                       )}
                     </div>
-                    <div className="md:w-2/3 p-6">
-                      <div className="mb-4">
-                        <h3 className="text-xl font-bold">{staffMember.name}</h3>
-                        <p className="text-tsfc-green font-semibold">{staffMember.role}</p>
-                        <div className="flex items-center text-sm text-muted-foreground mt-1">
-                          <span>Since {staffMember.joined_year || "N/A"}</span>
-                        </div>
-                      </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-bold">{staffMember.name}</h3>
+                      <p className="text-sm font-semibold text-tsfc-green">{staffMember.role}</p>
                       
-                      {staffMember.qualifications && (
-                        <div className="mb-4">
-                          <h4 className="font-semibold text-sm uppercase tracking-wide text-gray-500">Qualifications</h4>
-                          <p className="mt-1">{staffMember.qualifications}</p>
-                        </div>
-                      )}
-                      
-                      <div>
-                        <h4 className="font-semibold text-sm uppercase tracking-wide text-gray-500">Biography</h4>
-                        <p className="mt-1 text-gray-600">{staffMember.bio || "No biography available."}</p>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                      <Collapsible className="mt-2">
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" className="h-auto w-full justify-start p-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
+                            More info...
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                          {staffMember.qualifications && (
+                            <p className="text-xs text-gray-600">
+                              <span className="font-semibold">Qualifications:</span> {staffMember.qualifications}
+                            </p>
+                          )}
+                          {staffMember.bio && <p className="text-xs text-gray-600">{staffMember.bio}</p>}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+          
+          {isAdmin() && (
+            <Card className="mt-8 border-t">
+              <CardHeader>
+                <CardTitle className="text-lg">Staff Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {staff.map((staffMember) => (
+                      <TableRow key={staffMember.id}>
+                        <TableCell className="font-medium">{staffMember.name}</TableCell>
+                        <TableCell>{staffMember.role}</TableCell>
+                        <TableCell>{staffMember.joined_year || "N/A"}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditStaff(staffMember)}
+                            >
+                              <Pencil className="mr-1 h-4 w-4" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteStaff(staffMember.id, staffMember.name)}
+                            >
+                              <Trash2 className="mr-1 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </div>
-      </div>
+      )}
     </MainLayout>
   );
 };
