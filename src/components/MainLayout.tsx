@@ -62,7 +62,7 @@ const MainLayout = ({ children, title }: MainLayoutProps) => {
               variant="outline" 
               size="sm" 
               onClick={handleLogout} 
-              className="text-white border-white hover:bg-white hover:text-tsfc-green"
+              className="bg-emerald-500 text-white border-emerald-500 hover:bg-white hover:text-emerald-500"
             >
               <LogOut className="h-4 w-4 mr-1" />
               <span className="inline">Logout</span>

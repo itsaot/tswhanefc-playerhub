@@ -15,7 +15,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const tableExists = async (tableName: string): Promise<boolean> => {
   try {
     // Try to run a simple count query with limit 0 to check if table exists
-    const { count, error } = await supabase
+    const { error } = await supabase
       .from(tableName as any)
       .select('*', { count: 'exact', head: true })
       .limit(0);
