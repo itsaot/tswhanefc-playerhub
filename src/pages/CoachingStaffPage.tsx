@@ -15,10 +15,11 @@ interface CoachingStaff {
   id: string;
   name: string;
   role: string;
-  bio: string;
-  photoUrl: string;
-  qualifications: string;
-  since: string;
+  bio: string | null;
+  photo_url: string | null;
+  qualifications: string | null;
+  joined_year: string | null;
+  created_at?: string | null;
 }
 
 const CoachingStaffPage = () => {
@@ -45,56 +46,69 @@ const CoachingStaffPage = () => {
       name: "Coach Jomo",
       role: "Head Coach",
       bio: "Founded Tshwane Sporting FC in 2020 at the SAPS Training college. Has led the team to multiple local tournament victories.",
-      photoUrl: "https://randomuser.me/api/portraits/men/32.jpg",
+      photo_url: "https://randomuser.me/api/portraits/men/32.jpg",
       qualifications: "CAF A License, Former Professional Player",
-      since: "2020"
+      joined_year: "2020"
     },
     {
       id: "2",
       name: "Sarah Molefe",
       role: "Assistant Coach",
       bio: "Former national team player who joined the coaching staff in 2021. Specializes in technical skills development.",
-      photoUrl: "https://randomuser.me/api/portraits/women/44.jpg",
+      photo_url: "https://randomuser.me/api/portraits/women/44.jpg",
       qualifications: "UEFA B License, Sports Science Degree",
-      since: "2021"
+      joined_year: "2021"
     },
     {
       id: "3",
       name: "David Nkosi",
       role: "Fitness Coach",
       bio: "Professional fitness trainer with experience working with elite athletes. Focuses on strength and conditioning.",
-      photoUrl: "https://randomuser.me/api/portraits/men/62.jpg",
+      photo_url: "https://randomuser.me/api/portraits/men/62.jpg",
       qualifications: "Certified Strength & Conditioning Specialist, Sports Nutrition Certificate",
-      since: "2022"
+      joined_year: "2022"
     }
   ];
   
   useEffect(() => {
     const fetchStaff = async () => {
       try {
+        console.log("Fetching coaching staff data...");
         const { data, error } = await supabase
           .from("coaching_staff")
           .select("*")
           .order("name");
           
         if (error) {
+          console.error("Supabase error:", error);
           throw error;
         }
         
+        console.log("Coaching staff data received:", data);
         if (data && data.length > 0) {
-          const formattedStaff = data.map(staff => ({
-            id: staff.id,
-            name: staff.name,
-            role: staff.role,
-            bio: staff.bio,
-            photoUrl: staff.photo_url,
-            qualifications: staff.qualifications,
-            since: staff.joined_year
-          }));
-          setStaff(formattedStaff);
+          setStaff(data as CoachingStaff[]);
         } else {
           // Use sample data if none exists in the database
+          console.log("No coaching staff data found, using sample data");
           setStaff(sampleStaff);
+          
+          // Insert sample data into the database for first-time setup
+          for (const member of sampleStaff) {
+            const { error: insertError } = await supabase
+              .from("coaching_staff")
+              .insert({
+                name: member.name,
+                role: member.role,
+                bio: member.bio,
+                photo_url: member.photo_url,
+                qualifications: member.qualifications,
+                joined_year: member.joined_year
+              });
+              
+            if (insertError) {
+              console.error("Error inserting sample staff:", insertError);
+            }
+          }
         }
       } catch (error) {
         console.error("Error fetching coaching staff:", error);
@@ -122,7 +136,7 @@ const CoachingStaffPage = () => {
     return () => {
       supabase.removeChannel(staffSubscription);
     };
-  }, [toast]);
+  }, []);
   
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -152,10 +166,10 @@ const CoachingStaffPage = () => {
     setEditingStaff(staff);
     setStaffName(staff.name);
     setStaffRole(staff.role);
-    setStaffBio(staff.bio);
-    setStaffQualifications(staff.qualifications);
-    setStaffSince(staff.since);
-    setPhotoUrl(staff.photoUrl);
+    setStaffBio(staff.bio || "");
+    setStaffQualifications(staff.qualifications || "");
+    setStaffSince(staff.joined_year || "");
+    setPhotoUrl(staff.photo_url || "");
     setPhotoPreview(null);
     setIsEditing(true);
   };
@@ -173,6 +187,7 @@ const CoachingStaffPage = () => {
     setSubmitting(true);
     
     try {
+      console.log("Preparing staff data for save...");
       const staffData = {
         name: staffName,
         role: staffRole,
@@ -182,14 +197,18 @@ const CoachingStaffPage = () => {
         joined_year: staffSince
       };
       
+      console.log("Staff data to save:", staffData);
+      
       if (isEditing && editingStaff) {
         // Update existing staff
+        console.log("Updating existing staff with ID:", editingStaff.id);
         const { error } = await supabase
           .from("coaching_staff")
           .update(staffData)
           .eq("id", editingStaff.id);
           
         if (error) {
+          console.error("Error updating staff:", error);
           throw error;
         }
         
@@ -199,11 +218,13 @@ const CoachingStaffPage = () => {
         });
       } else {
         // Add new staff
+        console.log("Adding new staff member");
         const { error } = await supabase
           .from("coaching_staff")
           .insert(staffData);
           
         if (error) {
+          console.error("Error adding staff:", error);
           throw error;
         }
         
@@ -230,12 +251,14 @@ const CoachingStaffPage = () => {
   
   const handleDeleteStaff = async (id: string, name: string) => {
     try {
+      console.log("Deleting staff member with ID:", id);
       const { error } = await supabase
         .from("coaching_staff")
         .delete()
         .eq("id", id);
         
       if (error) {
+        console.error("Error deleting staff:", error);
         throw error;
       }
       
@@ -433,7 +456,7 @@ const CoachingStaffPage = () => {
                   <div className="md:flex">
                     <div className="md:w-1/3 h-64 md:h-auto relative">
                       <img 
-                        src={staffMember.photoUrl} 
+                        src={staffMember.photo_url || ""} 
                         alt={staffMember.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -465,7 +488,7 @@ const CoachingStaffPage = () => {
                         <h3 className="text-xl font-bold">{staffMember.name}</h3>
                         <p className="text-tsfc-green font-semibold">{staffMember.role}</p>
                         <div className="flex items-center text-sm text-muted-foreground mt-1">
-                          <span>Since {staffMember.since}</span>
+                          <span>Since {staffMember.joined_year || "N/A"}</span>
                         </div>
                       </div>
                       
@@ -478,7 +501,7 @@ const CoachingStaffPage = () => {
                       
                       <div>
                         <h4 className="font-semibold text-sm uppercase tracking-wide text-gray-500">Biography</h4>
-                        <p className="mt-1 text-gray-600">{staffMember.bio}</p>
+                        <p className="mt-1 text-gray-600">{staffMember.bio || "No biography available."}</p>
                       </div>
                     </div>
                   </div>

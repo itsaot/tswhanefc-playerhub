@@ -36,6 +36,39 @@ export type Database = {
         }
         Relationships: []
       }
+      coaching_staff: {
+        Row: {
+          bio: string | null
+          created_at: string | null
+          id: string
+          joined_year: string | null
+          name: string
+          photo_url: string | null
+          qualifications: string | null
+          role: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          joined_year?: string | null
+          name: string
+          photo_url?: string | null
+          qualifications?: string | null
+          role: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          joined_year?: string | null
+          name?: string
+          photo_url?: string | null
+          qualifications?: string | null
+          role?: string
+        }
+        Relationships: []
+      }
       photo_likes: {
         Row: {
           created_at: string
