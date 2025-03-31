@@ -1,9 +1,10 @@
+
 import { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserContext } from "../contexts/UserContext";
 import { 
   Users, UserPlus, LayoutDashboard, LogOut, FileSpreadsheet, 
-  Menu, X, Facebook, Camera
+  Menu, X, Facebook, Camera, Award
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -104,6 +105,14 @@ const MainLayout = ({ children, title }: MainLayoutProps) => {
                   >
                     <Users className="mr-3 h-5 w-5" />
                     Players
+                  </Link>
+                  <Link 
+                    to="/coaching-staff" 
+                    className="flex items-center px-4 py-3 text-gray-700 hover:bg-tsfc-green hover:text-white rounded-md transition-colors"
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Award className="mr-3 h-5 w-5" />
+                    Coaching Staff
                   </Link>
                   <Link 
                     to="/photos" 

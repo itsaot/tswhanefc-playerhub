@@ -14,6 +14,7 @@ import PlayerDetailsPage from "./pages/PlayerDetailsPage";
 import EditPlayerPage from "./pages/EditPlayerPage";
 import RegisterPlayerPage from "./pages/RegisterPlayerPage";
 import ClubPhotosPage from "./pages/ClubPhotosPage";
+import CoachingStaffPage from "./pages/CoachingStaffPage";
 import ContactPage from "./pages/ContactPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -39,6 +40,7 @@ function App(): ReactNode {
                 <Route path="/players" element={<PlayersPage />} />
                 <Route path="/players/:id" element={<PlayerDetailsPage />} />
                 <Route path="/photos" element={<ClubPhotosPage />} />
+                <Route path="/coaching-staff" element={<CoachingStaffPage />} />
                 <Route path="/contact" element={<ContactPage />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>

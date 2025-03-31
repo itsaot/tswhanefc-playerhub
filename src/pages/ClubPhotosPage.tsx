@@ -103,12 +103,6 @@ const ClubPhotosPage = () => {
           description: "Failed to load club photos",
           variant: "destructive"
         });
-        
-        // Fallback to localStorage if available
-        const storedPhotos = localStorage.getItem("clubPhotos");
-        if (storedPhotos) {
-          setPhotos(JSON.parse(storedPhotos));
-        }
       } finally {
         setLoading(false);
       }
@@ -181,6 +175,8 @@ const ClubPhotosPage = () => {
         uploaded_by: user.username
       };
 
+      console.log("Attempting to insert photo:", newPhoto);
+
       // Insert into Supabase
       const { data, error } = await supabase
         .from("club_photos")
@@ -188,8 +184,11 @@ const ClubPhotosPage = () => {
         .select();
 
       if (error) {
+        console.error("Supabase insert error:", error);
         throw new Error(error.message);
       }
+
+      console.log("Photo insert response:", data);
 
       if (data && data[0]) {
         const addedPhoto: ClubPhoto = {
@@ -221,7 +220,7 @@ const ClubPhotosPage = () => {
       console.error("Error adding photo:", err);
       toast({
         title: "Error",
-        description: "Failed to add photo to the database",
+        description: "Failed to add photo to the database. Please ensure you're logged in as admin.",
         variant: "destructive"
       });
     } finally {
@@ -238,6 +237,7 @@ const ClubPhotosPage = () => {
         .eq("id", id);
 
       if (error) {
+        console.error("Supabase delete error:", error);
         throw new Error(error.message);
       }
 
@@ -268,7 +268,10 @@ const ClubPhotosPage = () => {
           .eq("photo_id", photoId)
           .eq("user_id", user.username);
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          console.error("Supabase unlike error:", error);
+          throw new Error(error.message);
+        }
       } else {
         // Like the photo
         const { error } = await supabase
@@ -278,7 +281,10 @@ const ClubPhotosPage = () => {
             user_id: user.username
           });
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          console.error("Supabase like error:", error);
+          throw new Error(error.message);
+        }
       }
 
       // Update local state instead of waiting for subscription
