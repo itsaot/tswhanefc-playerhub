@@ -14,14 +14,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Add a helper function to check if a table exists
 export const tableExists = async (tableName: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from('pg_tables')
-      .select('tablename')
-      .eq('schemaname', 'public')
-      .eq('tablename', tableName)
-      .single();
+    // Instead of querying pg_tables directly, try to run a simple count query
+    // If the table doesn't exist, it will throw an error
+    const { count, error } = await supabase
+      .from(tableName as any)
+      .select('*', { count: 'exact', head: true });
     
-    return !error && !!data;
+    // If there's no error, the table exists
+    return !error;
   } catch (error) {
     console.error('Error checking if table exists:', error);
     return false;
