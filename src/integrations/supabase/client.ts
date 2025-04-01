@@ -22,10 +22,23 @@ export const setupAdminSession = async (role: 'admin' | 'user' | null, username:
   if (role) {
     // For development, we're setting custom headers to bypass RLS
     // In production, this would be handled by proper authentication
+    
+    // Store auth details in localStorage for persistence
     localStorage.setItem('supabase_auth_token', JSON.stringify({
       role: role,
       username: username
     }));
+    
+    // Set custom headers on the Supabase client for the current session
+    supabase.functions.setAuth(SUPABASE_PUBLISHABLE_KEY);
+    
+    // Apply headers for RLS policies
+    const previousHeaders = supabase.rest.headers;
+    supabase.rest.headers = {
+      ...previousHeaders,
+      'x-user-role': role,
+      'x-user-id': username
+    };
     
     // Log the authentication setup
     console.log(`Set up ${role} session for ${username}`);
@@ -33,6 +46,10 @@ export const setupAdminSession = async (role: 'admin' | 'user' | null, username:
   } else {
     // Clear auth token when logged out
     localStorage.removeItem('supabase_auth_token');
+    
+    // Reset headers
+    supabase.rest.headers = {};
+    
     console.log('Cleared authentication session');
     return false;
   }
