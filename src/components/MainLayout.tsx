@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { exportUsersToCSV } from "../pages/LoginPage";
+import { exportUsersToCSV } from "../utils/exportUtils";
 import { toast } from "@/hooks/use-toast";
 
 type MainLayoutProps = {

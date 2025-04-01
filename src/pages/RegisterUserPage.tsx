@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -10,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Target } from "lucide-react";
-import { exportUsersToCSV } from "./LoginPage";
+import { exportUsersToCSV } from "../utils/exportUtils";
 
 const userSchema = z.object({
   username: z.string().min(3, { message: "Username must be at least 3 characters" }),
@@ -41,10 +40,8 @@ const RegisterUserPage = () => {
     setIsLoading(true);
     
     try {
-      // Get existing users or initialize empty array
       const existingUsers = JSON.parse(localStorage.getItem("users") || "[]");
       
-      // Check if username already exists
       if (existingUsers.some((user: any) => user.username === values.username)) {
         toast({
           title: "Registration failed",
@@ -55,11 +52,10 @@ const RegisterUserPage = () => {
         return;
       }
       
-      // Add new user with registration date
       const newUser = {
         username: values.username,
         password: values.password,
-        role: "user", // Default role is user, not admin
+        role: "user",
         registrationDate: new Date().toISOString().split('T')[0]
       };
       
@@ -71,7 +67,6 @@ const RegisterUserPage = () => {
         description: "You can now log in with your credentials"
       });
       
-      // Export updated users list to CSV
       exportUsersToCSV();
       
       navigate("/login");
