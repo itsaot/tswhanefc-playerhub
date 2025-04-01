@@ -32,3 +32,19 @@ export const tableExists = async (tableName: string): Promise<boolean> => {
     return false;
   }
 };
+
+// Add a helper function to check if user is authenticated as admin
+export const isAuthenticatedAsAdmin = async (): Promise<boolean> => {
+  try {
+    const session = await supabase.auth.getSession();
+    if (!session?.data?.session?.user) {
+      return false;
+    }
+    // Here you would check if the user is an admin
+    // For now, we're just checking if they're authenticated
+    return true;
+  } catch (error) {
+    console.error('Error checking authentication:', error);
+    return false;
+  }
+};

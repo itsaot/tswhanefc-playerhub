@@ -170,11 +170,13 @@ const ClubPhotosPage = () => {
     setUploading(true);
 
     try {
+      const username = user.username || "admin";
+      
       const newPhoto = {
         title,
         description,
         photo_url: photoPreview || photoUrl,
-        uploaded_by: user.username
+        uploaded_by: username
       };
 
       console.log("Attempting to insert photo:", newPhoto);
@@ -198,7 +200,7 @@ const ClubPhotosPage = () => {
           description: data[0].description || "",
           photoUrl: data[0].photo_url,
           uploadDate: new Date(data[0].upload_date || Date.now()).toLocaleDateString(),
-          uploadedBy: data[0].uploaded_by || user.username,
+          uploadedBy: data[0].uploaded_by || username,
           likes: 0,
           likedByCurrentUser: false
         };

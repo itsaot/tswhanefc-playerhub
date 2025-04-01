@@ -35,10 +35,16 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   });
 
   useEffect(() => {
+    // Make sure we're updating localStorage whenever user state changes
     localStorage.setItem('user', JSON.stringify(user));
+    
+    // For debugging - log when user state changes
+    console.log("User context updated:", user);
   }, [user]);
 
-  const isAdmin = () => user.role === 'admin';
+  const isAdmin = () => {
+    return user.role === 'admin';
+  };
 
   return (
     <UserContext.Provider value={{ user, setUser, isAdmin }}>

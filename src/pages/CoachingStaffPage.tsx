@@ -1,3 +1,4 @@
+
 import MainLayout from "../components/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect, useContext } from "react";
@@ -40,9 +41,9 @@ const CoachingStaffPage = () => {
   const { toast } = useToast();
   const { isAdmin, user } = useContext(UserContext);
   
-  const sampleStaff: CoachingStaff[] = [
+  // Sample staff data - Don't include IDs, let the database generate them
+  const sampleStaff: Omit<CoachingStaff, 'id'>[] = [
     {
-      id: "1",
       name: "Coach Jomo",
       role: "Head Coach",
       bio: "Founded Tshwane Sporting FC in 2020 at the SAPS Training college. Has led the team to multiple local tournament victories.",
@@ -51,7 +52,6 @@ const CoachingStaffPage = () => {
       joined_year: "2020"
     },
     {
-      id: "2",
       name: "Sarah Molefe",
       role: "Assistant Coach",
       bio: "Former national team player who joined the coaching staff in 2021. Specializes in technical skills development.",
@@ -60,7 +60,6 @@ const CoachingStaffPage = () => {
       joined_year: "2021"
     },
     {
-      id: "3",
       name: "David Nkosi",
       role: "Fitness Coach",
       bio: "Professional fitness trainer with experience working with elite athletes. Focuses on strength and conditioning.",
@@ -92,13 +91,19 @@ const CoachingStaffPage = () => {
           
           try {
             console.log("Inserting sample staff data into the database");
+            // Insert sample data without specifying IDs - let Supabase generate them
             const { error: insertError } = await supabase
               .from("coaching_staff")
               .insert(sampleStaff);
               
             if (insertError) {
               console.error("Error inserting sample data:", insertError);
-              setStaff(sampleStaff);
+              // Create sample staff with fake IDs for display only
+              const staffWithIds = sampleStaff.map((staff, index) => ({
+                ...staff,
+                id: `temp-${index}`
+              }));
+              setStaff(staffWithIds);
             } else {
               const { data: newData } = await supabase
                 .from("coaching_staff")
@@ -108,17 +113,32 @@ const CoachingStaffPage = () => {
               if (newData && newData.length > 0) {
                 setStaff(newData as CoachingStaff[]);
               } else {
-                setStaff(sampleStaff);
+                // Create sample staff with fake IDs for display only
+                const staffWithIds = sampleStaff.map((staff, index) => ({
+                  ...staff,
+                  id: `temp-${index}`
+                }));
+                setStaff(staffWithIds);
               }
             }
           } catch (insertErr) {
             console.error("Error inserting sample data:", insertErr);
-            setStaff(sampleStaff);
+            // Create sample staff with fake IDs for display only
+            const staffWithIds = sampleStaff.map((staff, index) => ({
+              ...staff,
+              id: `temp-${index}`
+            }));
+            setStaff(staffWithIds);
           }
         }
       } catch (error) {
         console.error("Error fetching coaching staff:", error);
-        setStaff(sampleStaff);
+        // Create sample staff with fake IDs for display only
+        const staffWithIds = sampleStaff.map((staff, index) => ({
+          ...staff,
+          id: `temp-${index}`
+        }));
+        setStaff(staffWithIds);
       } finally {
         setLoading(false);
       }
@@ -213,23 +233,44 @@ const CoachingStaffPage = () => {
       console.log("Staff data to save:", staffData);
       
       if (isEditing && editingStaff) {
-        const { data, error } = await supabase
-          .from("coaching_staff")
-          .update(staffData)
-          .eq("id", editingStaff.id)
-          .select();
-        
-        if (error) {
-          console.error("Supabase update error:", error);
-          throw error;
+        // Only update if it's a real DB record with a valid UUID
+        if (editingStaff.id.startsWith('temp-')) {
+          // For temp records, just add a new one instead
+          const { data, error } = await supabase
+            .from("coaching_staff")
+            .insert(staffData)
+            .select();
+          
+          if (error) {
+            console.error("Supabase insert error:", error);
+            throw error;
+          }
+          
+          console.log("Staff insert response:", data);
+          
+          toast({
+            title: "Staff member added",
+            description: `${staffName} has been added to the coaching staff`
+          });
+        } else {
+          const { data, error } = await supabase
+            .from("coaching_staff")
+            .update(staffData)
+            .eq("id", editingStaff.id)
+            .select();
+          
+          if (error) {
+            console.error("Supabase update error:", error);
+            throw error;
+          }
+          
+          console.log("Staff update response:", data);
+          
+          toast({
+            title: "Staff member updated",
+            description: `${staffName}'s information has been updated successfully`
+          });
         }
-        
-        console.log("Staff update response:", data);
-        
-        toast({
-          title: "Staff member updated",
-          description: `${staffName}'s information has been updated successfully`
-        });
       } else {
         const { data, error } = await supabase
           .from("coaching_staff")
@@ -278,6 +319,16 @@ const CoachingStaffPage = () => {
         title: "Permission denied",
         description: "You need admin privileges to delete coaching staff",
         variant: "destructive"
+      });
+      return;
+    }
+    
+    // Skip the delete operation for temporary records
+    if (id.startsWith('temp-')) {
+      setStaff(prevStaff => prevStaff.filter(staff => staff.id !== id));
+      toast({
+        title: "Staff member removed",
+        description: `${name} has been removed from the coaching staff`
       });
       return;
     }
