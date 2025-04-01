@@ -8,12 +8,14 @@ type ProtectedRouteProps = {
 };
 
 const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-  const { user, isAdmin } = useContext(UserContext);
+  const { user } = useContext(UserContext);
 
+  // If no role, redirect to login
   if (!user.role) {
     return <Navigate to="/login" replace />;
   }
 
+  // If role not allowed, redirect to dashboard
   if (!allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }

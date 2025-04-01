@@ -54,6 +54,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   }, [user]);
 
   const isAdmin = () => {
+    // Make sure this is explicitly checking for 'admin' role
     return user.role === 'admin';
   };
 
@@ -62,7 +63,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     const newUser = { username, role };
     setUser(newUser);
     
-    // Set up Supabase session
+    // Set up Supabase session - make sure role is passed correctly
     setupAdminSession(role, username);
     
     console.log(`Logged in as ${role}: ${username}`);

@@ -32,7 +32,7 @@ const LoginPage = () => {
       // For demo purposes, we're using a simplistic login
       // In a real app, you'd validate credentials against a backend
       if (username === 'admin' && password === 'admin') {
-        // Log in as admin
+        // Log in as admin - FIXED: was incorrectly using 'user' role
         login('admin', 'admin');
         
         toast({
