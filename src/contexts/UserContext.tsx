@@ -1,5 +1,6 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import { setupAdminSession } from '@/integrations/supabase/client';
 
 export type UserContextType = {
   user: {
@@ -11,6 +12,8 @@ export type UserContextType = {
     role: 'admin' | 'user' | null;
   }>>;
   isAdmin: () => boolean;
+  login: (username: string, role: 'admin' | 'user') => void;
+  logout: () => void;
 };
 
 const defaultUser = {
@@ -21,7 +24,9 @@ const defaultUser = {
 export const UserContext = createContext<UserContextType>({
   user: defaultUser,
   setUser: () => {},
-  isAdmin: () => false
+  isAdmin: () => false,
+  login: () => {},
+  logout: () => {}
 });
 
 type UserProviderProps = {
@@ -34,9 +39,15 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     return storedUser ? JSON.parse(storedUser) : defaultUser;
   });
 
+  // Set up Supabase session when user changes
   useEffect(() => {
     // Make sure we're updating localStorage whenever user state changes
     localStorage.setItem('user', JSON.stringify(user));
+    
+    // If user has a role, set up admin session for Supabase
+    if (user.role) {
+      setupAdminSession(user.role, user.username);
+    }
     
     // For debugging - log when user state changes
     console.log("User context updated:", user);
@@ -46,8 +57,29 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     return user.role === 'admin';
   };
 
+  const login = (username: string, role: 'admin' | 'user') => {
+    // Update user state
+    const newUser = { username, role };
+    setUser(newUser);
+    
+    // Set up Supabase session
+    setupAdminSession(role, username);
+    
+    console.log(`Logged in as ${role}: ${username}`);
+  };
+
+  const logout = () => {
+    // Clear user state
+    setUser(defaultUser);
+    
+    // Clear Supabase session
+    setupAdminSession(null, '');
+    
+    console.log('Logged out');
+  };
+
   return (
-    <UserContext.Provider value={{ user, setUser, isAdmin }}>
+    <UserContext.Provider value={{ user, setUser, isAdmin, login, logout }}>
       {children}
     </UserContext.Provider>
   );

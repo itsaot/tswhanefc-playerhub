@@ -1,4 +1,3 @@
-
 import MainLayout from "../components/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect, useContext } from "react";
@@ -41,7 +40,6 @@ const CoachingStaffPage = () => {
   const { toast } = useToast();
   const { isAdmin, user } = useContext(UserContext);
   
-  // Sample staff data - Don't include IDs, let the database generate them
   const sampleStaff: Omit<CoachingStaff, 'id'>[] = [
     {
       name: "Coach Jomo",
@@ -90,36 +88,46 @@ const CoachingStaffPage = () => {
           console.log("No coaching staff data found, using sample data");
           
           try {
-            console.log("Inserting sample staff data into the database");
-            // Insert sample data without specifying IDs - let Supabase generate them
-            const { error: insertError } = await supabase
-              .from("coaching_staff")
-              .insert(sampleStaff);
-              
-            if (insertError) {
-              console.error("Error inserting sample data:", insertError);
-              // Create sample staff with fake IDs for display only
-              const staffWithIds = sampleStaff.map((staff, index) => ({
-                ...staff,
-                id: `temp-${index}`
-              }));
-              setStaff(staffWithIds);
-            } else {
-              const { data: newData } = await supabase
+            if (isAdmin()) {
+              console.log("Admin user, inserting sample staff data into the database");
+              // Insert sample data without specifying IDs - let Supabase generate them
+              const { error: insertError } = await supabase
                 .from("coaching_staff")
-                .select("*")
-                .order("name");
+                .insert(sampleStaff);
                 
-              if (newData && newData.length > 0) {
-                setStaff(newData as CoachingStaff[]);
-              } else {
+              if (insertError) {
+                console.error("Error inserting sample data:", insertError);
                 // Create sample staff with fake IDs for display only
                 const staffWithIds = sampleStaff.map((staff, index) => ({
                   ...staff,
                   id: `temp-${index}`
                 }));
                 setStaff(staffWithIds);
+              } else {
+                const { data: newData } = await supabase
+                  .from("coaching_staff")
+                  .select("*")
+                  .order("name");
+                  
+                if (newData && newData.length > 0) {
+                  setStaff(newData as CoachingStaff[]);
+                } else {
+                  // Create sample staff with fake IDs for display only
+                  const staffWithIds = sampleStaff.map((staff, index) => ({
+                    ...staff,
+                    id: `temp-${index}`
+                  }));
+                  setStaff(staffWithIds);
+                }
               }
+            } else {
+              // Not admin, just use sample data for display
+              const staffWithIds = sampleStaff.map((staff, index) => ({
+                ...staff,
+                id: `temp-${index}`
+              }));
+              setStaff(staffWithIds);
+              console.log("Not admin user, using sample data for display only");
             }
           } catch (insertErr) {
             console.error("Error inserting sample data:", insertErr);
@@ -224,10 +232,10 @@ const CoachingStaffPage = () => {
       const staffData = {
         name: staffName,
         role: staffRole,
-        bio: staffBio,
-        photo_url: photoPreview || photoUrl,
-        qualifications: staffQualifications,
-        joined_year: staffSince
+        bio: staffBio || null,
+        photo_url: photoPreview || photoUrl || null,
+        qualifications: staffQualifications || null,
+        joined_year: staffSince || null
       };
       
       console.log("Staff data to save:", staffData);

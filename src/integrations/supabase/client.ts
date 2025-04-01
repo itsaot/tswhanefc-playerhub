@@ -16,6 +16,28 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
+// Helper function to set up a custom auth token for development purposes
+// This is useful because we're using a custom authentication system, not Supabase Auth
+export const setupAdminSession = async (role: 'admin' | 'user' | null, username: string) => {
+  if (role) {
+    // For development, we're setting custom headers to bypass RLS
+    // In production, this would be handled by proper authentication
+    localStorage.setItem('supabase_auth_token', JSON.stringify({
+      role: role,
+      username: username
+    }));
+    
+    // Log the authentication setup
+    console.log(`Set up ${role} session for ${username}`);
+    return true;
+  } else {
+    // Clear auth token when logged out
+    localStorage.removeItem('supabase_auth_token');
+    console.log('Cleared authentication session');
+    return false;
+  }
+};
+
 // Add a helper function to check if a table exists
 export const tableExists = async (tableName: string): Promise<boolean> => {
   try {
@@ -36,13 +58,20 @@ export const tableExists = async (tableName: string): Promise<boolean> => {
 // Add a helper function to check if user is authenticated as admin
 export const isAuthenticatedAsAdmin = async (): Promise<boolean> => {
   try {
-    const session = await supabase.auth.getSession();
-    if (!session?.data?.session?.user) {
-      return false;
+    // Check our custom auth token first (for development)
+    const authToken = localStorage.getItem('supabase_auth_token');
+    if (authToken) {
+      const parsed = JSON.parse(authToken);
+      return parsed.role === 'admin';
     }
-    // Here you would check if the user is an admin
-    // For now, we're just checking if they're authenticated
-    return true;
+    
+    // Fallback to checking Supabase session (if we implement Supabase Auth later)
+    const session = await supabase.auth.getSession();
+    if (session?.data?.session?.user) {
+      return true; // Would need proper role checking if using Supabase Auth
+    }
+    
+    return false;
   } catch (error) {
     console.error('Error checking authentication:', error);
     return false;
