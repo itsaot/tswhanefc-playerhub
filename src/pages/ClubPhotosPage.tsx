@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useContext } from "react";
 import MainLayout from "../components/MainLayout";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,17 +32,17 @@ const ClubPhotosPage = () => {
   const { toast } = useToast();
   const { user, isAdmin } = useContext(UserContext);
 
-  // Fetch photos from Supabase
   useEffect(() => {
     const fetchPhotos = async () => {
       try {
-        // First fetch all photos
+        console.log("Fetching club photos...");
         const { data: photosData, error: photosError } = await supabase
           .from("club_photos")
           .select("*")
           .order("upload_date", { ascending: false });
 
         if (photosError) {
+          console.error("Supabase error when fetching photos:", photosError);
           throw new Error(photosError.message);
         }
 
@@ -52,7 +51,8 @@ const ClubPhotosPage = () => {
           return;
         }
 
-        // Then fetch all likes for the current user
+        console.log("Photos data received:", photosData);
+
         const { data: likesData, error: likesError } = await supabase
           .from("photo_likes")
           .select("*")
@@ -62,7 +62,6 @@ const ClubPhotosPage = () => {
           console.error("Error fetching likes:", likesError);
         }
 
-        // Count all likes per photo
         const likesCountPromise = Promise.all(
           photosData.map(async (photo) => {
             const { count, error } = await supabase
@@ -76,7 +75,6 @@ const ClubPhotosPage = () => {
 
         const likesCount = await likesCountPromise;
         
-        // Transform from snake_case to camelCase and add likes info
         const formattedPhotos: ClubPhoto[] = photosData.map(photo => {
           const photoLikesCount = likesCount.find(lc => lc.photoId === photo.id)?.count || 0;
           const isLikedByUser = likesData 
@@ -110,7 +108,6 @@ const ClubPhotosPage = () => {
 
     fetchPhotos();
     
-    // Subscribe to realtime changes
     const photosSubscription = supabase
       .channel('photos-changes')
       .on('postgres_changes', { 
@@ -118,12 +115,10 @@ const ClubPhotosPage = () => {
         schema: 'public', 
         table: 'club_photos' 
       }, () => {
-        // Refresh the photos list when changes occur
         fetchPhotos();
       })
       .subscribe();
       
-    // Also subscribe to likes changes
     const likesSubscription = supabase
       .channel('likes-changes')
       .on('postgres_changes', { 
@@ -131,7 +126,6 @@ const ClubPhotosPage = () => {
         schema: 'public', 
         table: 'photo_likes' 
       }, () => {
-        // Refresh the photos list when likes change
         fetchPhotos();
       })
       .subscribe();
@@ -164,10 +158,18 @@ const ClubPhotosPage = () => {
       return;
     }
 
+    if (!isAdmin()) {
+      toast({
+        title: "Permission denied",
+        description: "You need admin privileges to add photos",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setUploading(true);
 
     try {
-      // Create new photo record
       const newPhoto = {
         title,
         description,
@@ -177,7 +179,6 @@ const ClubPhotosPage = () => {
 
       console.log("Attempting to insert photo:", newPhoto);
 
-      // Insert into Supabase
       const { data, error } = await supabase
         .from("club_photos")
         .insert(newPhoto)
@@ -202,10 +203,8 @@ const ClubPhotosPage = () => {
           likedByCurrentUser: false
         };
 
-        // Update local state
         setPhotos(prevPhotos => [addedPhoto, ...prevPhotos]);
         
-        // Reset form
         setTitle("");
         setDescription("");
         setPhotoUrl("");
@@ -230,7 +229,6 @@ const ClubPhotosPage = () => {
 
   const handleRemovePhoto = async (id: string) => {
     try {
-      // Delete from Supabase
       const { error } = await supabase
         .from("club_photos")
         .delete()
@@ -241,7 +239,6 @@ const ClubPhotosPage = () => {
         throw new Error(error.message);
       }
 
-      // Update local state
       setPhotos(prevPhotos => prevPhotos.filter(photo => photo.id !== id));
       
       toast({
@@ -261,7 +258,6 @@ const ClubPhotosPage = () => {
   const handleToggleLike = async (photoId: string, isLiked: boolean) => {
     try {
       if (isLiked) {
-        // Unlike the photo
         const { error } = await supabase
           .from("photo_likes")
           .delete()
@@ -273,7 +269,6 @@ const ClubPhotosPage = () => {
           throw new Error(error.message);
         }
       } else {
-        // Like the photo
         const { error } = await supabase
           .from("photo_likes")
           .insert({
@@ -287,7 +282,6 @@ const ClubPhotosPage = () => {
         }
       }
 
-      // Update local state instead of waiting for subscription
       setPhotos(prevPhotos => prevPhotos.map(photo => {
         if (photo.id === photoId) {
           return {
@@ -298,7 +292,6 @@ const ClubPhotosPage = () => {
         }
         return photo;
       }));
-
     } catch (err) {
       console.error("Error toggling like:", err);
       toast({

@@ -38,9 +38,8 @@ const CoachingStaffPage = () => {
   const [submitting, setSubmitting] = useState(false);
   
   const { toast } = useToast();
-  const { isAdmin } = useContext(UserContext);
+  const { isAdmin, user } = useContext(UserContext);
   
-  // Sample data for initial display
   const sampleStaff: CoachingStaff[] = [
     {
       id: "1",
@@ -89,16 +88,36 @@ const CoachingStaffPage = () => {
         if (data && data.length > 0) {
           setStaff(data as CoachingStaff[]);
         } else {
-          // Use sample data if none exists in the database
           console.log("No coaching staff data found, using sample data");
-          setStaff(sampleStaff);
           
-          // Skip inserting sample data to database as it's causing RLS errors
-          // Instead, we'll just use the sample data for display
+          try {
+            console.log("Inserting sample staff data into the database");
+            const { error: insertError } = await supabase
+              .from("coaching_staff")
+              .insert(sampleStaff);
+              
+            if (insertError) {
+              console.error("Error inserting sample data:", insertError);
+              setStaff(sampleStaff);
+            } else {
+              const { data: newData } = await supabase
+                .from("coaching_staff")
+                .select("*")
+                .order("name");
+                
+              if (newData && newData.length > 0) {
+                setStaff(newData as CoachingStaff[]);
+              } else {
+                setStaff(sampleStaff);
+              }
+            }
+          } catch (insertErr) {
+            console.error("Error inserting sample data:", insertErr);
+            setStaff(sampleStaff);
+          }
         }
       } catch (error) {
         console.error("Error fetching coaching staff:", error);
-        // Use sample data if there's an error
         setStaff(sampleStaff);
       } finally {
         setLoading(false);
@@ -107,7 +126,6 @@ const CoachingStaffPage = () => {
     
     fetchStaff();
     
-    // Set up subscription for real-time updates
     const staffSubscription = supabase
       .channel("coaching-staff-changes")
       .on("postgres_changes", {
@@ -170,6 +188,15 @@ const CoachingStaffPage = () => {
       return;
     }
     
+    if (!isAdmin()) {
+      toast({
+        title: "Permission denied",
+        description: "You need admin privileges to modify coaching staff",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setSubmitting(true);
     
     try {
@@ -186,42 +213,58 @@ const CoachingStaffPage = () => {
       console.log("Staff data to save:", staffData);
       
       if (isEditing && editingStaff) {
-        // For editing, just update the local state instead of the database
-        // since we're having RLS issues
-        setStaff(prevStaff => 
-          prevStaff.map(member => 
-            member.id === editingStaff.id ? {...member, ...staffData} : member
-          )
-        );
+        const { data, error } = await supabase
+          .from("coaching_staff")
+          .update(staffData)
+          .eq("id", editingStaff.id)
+          .select();
+        
+        if (error) {
+          console.error("Supabase update error:", error);
+          throw error;
+        }
+        
+        console.log("Staff update response:", data);
         
         toast({
           title: "Staff member updated",
-          description: `${staffName}'s information has been updated locally`
+          description: `${staffName}'s information has been updated successfully`
         });
       } else {
-        // For adding, create a new staff member in local state only
-        const newStaff = {
-          ...staffData,
-          id: Date.now().toString(), // Generate a temporary ID
-          created_at: new Date().toISOString()
-        };
+        const { data, error } = await supabase
+          .from("coaching_staff")
+          .insert(staffData)
+          .select();
         
-        setStaff(prevStaff => [...prevStaff, newStaff as CoachingStaff]);
+        if (error) {
+          console.error("Supabase insert error:", error);
+          throw error;
+        }
+        
+        console.log("Staff insert response:", data);
         
         toast({
           title: "Staff member added",
-          description: `${staffName} has been added to the coaching staff locally`
+          description: `${staffName} has been added to the coaching staff`
         });
       }
       
-      // Reset form
+      const { data: updatedData } = await supabase
+        .from("coaching_staff")
+        .select("*")
+        .order("name");
+        
+      if (updatedData) {
+        setStaff(updatedData as CoachingStaff[]);
+      }
+      
       resetForm();
       
     } catch (error) {
       console.error("Error saving coaching staff:", error);
       toast({
         title: "Error",
-        description: "Failed to save coaching staff information. Please try again later.",
+        description: "Failed to save coaching staff information. Please ensure you're logged in as admin.",
         variant: "destructive"
       });
     } finally {
@@ -230,8 +273,26 @@ const CoachingStaffPage = () => {
   };
   
   const handleDeleteStaff = async (id: string, name: string) => {
+    if (!isAdmin()) {
+      toast({
+        title: "Permission denied",
+        description: "You need admin privileges to delete coaching staff",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
-      // Instead of deleting from the database, just update local state
+      const { error } = await supabase
+        .from("coaching_staff")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("Supabase delete error:", error);
+        throw error;
+      }
+
       setStaff(prevStaff => prevStaff.filter(staff => staff.id !== id));
       
       toast({
@@ -242,7 +303,7 @@ const CoachingStaffPage = () => {
       console.error("Error deleting staff member:", error);
       toast({
         title: "Error",
-        description: "Failed to remove staff member",
+        description: "Failed to remove staff member. Please ensure you're logged in as admin.",
         variant: "destructive"
       });
     }
